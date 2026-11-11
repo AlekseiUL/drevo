@@ -1,0 +1,132 @@
+{
+  "schemaVersion": 1,
+  "checkedAt": "2026-11-11",
+  "method": "Manual agent walkthrough through a separate Chrome DevTools browser context; public read-only navigation, no login or payment.",
+  "resultCodes": {
+    "record-found": "found",
+    "image-visible": "found",
+    "catalog-entry-found": "found",
+    "empty-results": "not-found",
+    "image-unavailable": "not-found",
+    "auth-required": "blocked",
+    "captcha-required": "blocked",
+    "access-blocked": "blocked",
+    "tool-unavailable": "not-searched"
+  },
+  "routes": [
+    {
+      "id": "memorial-map-search",
+      "resourceId": "memorial-map",
+      "routeFile": "skills/genealogy-research/references/browser-routes/memorial-map.md",
+      "entryUrl": "https://memorial-map.ru/",
+      "checkedAt": "2026-11-11",
+      "access": {"catalogAccount": "none-observed", "imageAccount": "none-observed", "paymentPerformed": false, "captchaObserved": false},
+      "fields": [
+        {"name": "fio", "label": "Кого ищем?", "requiredForRoute": true, "tested": true},
+        {"name": "territory", "label": "Выбранная территория", "requiredForRoute": true, "tested": "default-only"},
+        {"name": "cemetery", "label": "Кладбище", "requiredForRoute": false, "tested": false},
+        {"name": "birthYear", "label": "Год рождения", "requiredForRoute": false, "tested": false},
+        {"name": "deathYear", "label": "Год смерти", "requiredForRoute": false, "tested": false}
+      ],
+      "steps": [
+        {"action": "Open entryUrl and identify the active territory", "observe": "Search field and territory are visible"},
+        {"action": "Fill the known name and click Найти захоронение", "observe": "Найдено heading and completed result cards"},
+        {"action": "Open a candidate name", "observe": "A /dead/<uuid> record URL"},
+        {"action": "Inspect the visible gallery and compare the inscription with index text", "observe": "Readable parts, unreadable parts and photo provenance recorded separately"}
+      ],
+      "canonicalLocator": {"urlPattern": "https://memorial-map.ru/dead/<uuid>", "fields": ["recordId", "cemetery", "photoNumberOrLabel", "accessedAt"]},
+      "capture": ["query", "territory", "filters", "resultCount", "visitedCandidateIds", "recordUrl", "indexText", "inscriptionReading", "imageRightsStatus", "coverage"],
+      "observation": {
+        "resultCodes": ["record-found", "image-visible"],
+        "queryBasis": "Example query printed by the site; not the user's family",
+        "resultCount": 61,
+        "recordsOpened": 1,
+        "publicRecordUrl": "https://memorial-map.ru/dead/02f489b7-2499-4081-a5d9-bf6078d48cb2",
+        "photoVisuallyInspected": true,
+        "observedCoverage": "Default Vologda territory; one name search, one public record, visible main photograph and gallery thumbnails. Full inscription was not transcribed.",
+        "notVerified": ["Complete cemetery coverage", "All advanced filters", "Family relationship", "Image redistribution rights"]
+      },
+      "fallback": ["Record exact empty-results scope before changing a justified name variant or territory", "If images are absent, retain the record separately", "If access requires a user action, pause that step and continue an independent source"]
+    },
+    {
+      "id": "pomnim-online-search",
+      "resourceId": "pomnim-online",
+      "routeFile": "skills/genealogy-research/references/browser-routes/pomnim-online.md",
+      "entryUrl": "https://pomnim.online/search",
+      "checkedAt": "2026-11-11",
+      "access": {"catalogAccount": "none-observed", "imageAccount": "none-observed", "paymentPerformed": false, "captchaObserved": false},
+      "fields": [
+        {"name": "surname", "label": "Искомая фамилия*", "requiredForRoute": true, "tested": true},
+        {"name": "givenName", "label": "Имя", "requiredForRoute": false, "tested": true},
+        {"name": "patronymic", "label": "Отчество", "requiredForRoute": false, "tested": true},
+        {"name": "recordId", "label": "ID", "requiredForRoute": false, "tested": false},
+        {"name": "birthYear", "label": "Год рождения: Точно / До / После", "requiredForRoute": false, "tested": false},
+        {"name": "deathYear", "label": "Год смерти: Точно / До / После", "requiredForRoute": false, "tested": false},
+        {"name": "cemetery", "label": "Кладбище", "requiredForRoute": false, "tested": false},
+        {"name": "hasPhoto", "label": "С фото", "requiredForRoute": false, "tested": false}
+      ],
+      "steps": [
+        {"action": "Open the search form and fill only known name fields", "observe": "Required surname and optional fields retain the intended values"},
+        {"action": "Click Найти inside the form", "observe": "Results heading echoes the query; /search may stay unchanged"},
+        {"action": "Open candidate name or посмотреть", "observe": "/burial/<id> and the displayed ID agree"},
+        {"action": "Read public fields and inspect the main photo gallery", "observe": "Photo distinguished from placeholder and index fields"}
+      ],
+      "canonicalLocator": {"urlPattern": "https://pomnim.online/burial/<id>", "fields": ["recordId", "cemeteryUrlIfShown", "photoNumberOrLabel", "accessedAt"]},
+      "capture": ["queryFields", "filters", "resultCount", "recordId", "recordUrl", "indexText", "inscriptionReading", "imageRightsStatus", "coverage"],
+      "observation": {
+        "resultCodes": ["record-found", "image-visible"],
+        "queryBasis": "Historical public figure, Alexander Pushkin; not the user's family",
+        "resultCount": 4,
+        "recordsOpened": 1,
+        "publicRecordUrl": "https://pomnim.online/burial/3591583",
+        "photoVisuallyInspected": true,
+        "observedCoverage": "Three name fields submitted, four candidates shown, one historical public figure record and its watermarked photograph inspected. Search URL did not retain the query.",
+        "notVerified": ["All year and cemetery filters", "Access to all records", "Absence of CAPTCHA on future visits", "Image redistribution rights"]
+      },
+      "fallback": ["CAPTCHA is a user handoff, not an automation challenge", "Preserve parameters because /search alone does not reproduce the result", "Keep a paid search request distinct from free form submission"]
+    },
+    {
+      "id": "dvinaland-catalog",
+      "resourceId": "dvinaland",
+      "routeFile": "skills/genealogy-research/references/browser-routes/dvinaland.md",
+      "entryUrl": "https://archives.dvinaland.ru/archive",
+      "checkedAt": "2026-11-11",
+      "access": {"catalogAccount": "none-observed", "imageAccount": "required-observed", "paymentPerformed": false, "captchaObserved": false},
+      "fields": [
+        {"name": "repository", "label": "Название архива", "requiredForRoute": true, "tested": true},
+        {"name": "fund", "label": "Номер / Заголовок фонда", "requiredForRoute": true, "tested": "browse-only"},
+        {"name": "inventory", "label": "Описи фонда: номер, том, даты", "requiredForRoute": true, "tested": true},
+        {"name": "unit", "label": "Дела описи: номер, заголовок, даты", "requiredForRoute": true, "tested": true},
+        {"name": "hasImages", "label": "Наличие образов дел", "requiredForRoute": false, "tested": false}
+      ],
+      "steps": [
+        {"action": "Enter public Каталог фондов and select the correct repository", "observe": "Repository heading and fund list"},
+        {"action": "Open the relevant fund and inventory by number, volume and dates", "observe": "Fund and inventory identifiers recorded independently of site IDs"},
+        {"action": "Open an item from the inventory", "observe": "Canonical archival locator, title, dates and sheet count"},
+        {"action": "Determine content access separately from catalog access", "observe": "Public metadata recorded; login request classified only for the content step"}
+      ],
+      "canonicalLocator": {"urlPattern": "https://archives.dvinaland.ru/archive<repositoryId>/unit/<id>", "fields": ["repository", "fundNumber", "inventoryNumberAndVolume", "unitNumber", "sheetAndSideIfRead", "accessedAt"]},
+      "capture": ["question", "repository", "fundUrl", "inventoryUrl", "unitUrl", "archivalLocator", "dates", "sheetCount", "catalogCoverage", "imageAccessResult"],
+      "observation": {
+        "resultCodes": ["catalog-entry-found", "auth-required"],
+        "queryBasis": "Browse the first listed historical administrative fund; no personal name search",
+        "recordsOpened": 1,
+        "publicRecordUrl": "https://archives.dvinaland.ru/archive1/unit/10000389546",
+        "fundUrl": "https://archives.dvinaland.ru/archive1/funds/10000036927",
+        "inventoryUrl": "https://archives.dvinaland.ru/archive1/inventory/10000036951",
+        "canonicalLocator": "ГААО. Ф. 1. Оп. 1 т.1. Д. 1. Описание дела; листы не просмотрены.",
+        "photoVisuallyInspected": false,
+        "observedCoverage": "Public repository, fund, inventory and item metadata: documents dated 1710, 35 sheets. Item requires sign-in for viewing/ordering; images were not inspected.",
+        "notVerified": ["Whether this unit has digital images", "Image viewing after login", "Prices or payment success", "Names inside the document", "General name search"]
+      },
+      "fallback": ["An initial direct /archive1/funds visit redirected to login; ordinary public Каталог фондов → repository navigation subsequently opened the catalog without login", "If public navigation also requires authorization, hand off to user and retain public locator", "Do not retain OAuth or session links", "Continue accessible inventories and finding aids independently"]
+    }
+  ],
+  "toolObservations": [
+    {"tool": "Playwright MCP", "resultCode": "tool-unavailable", "note": "A separate-tab attempt reported an already-used browser profile; no existing process was stopped."},
+    {"tool": "Chrome DevTools MCP", "resultCode": "record-found", "note": "All three routes executed in a separate isolated browser context."}
+  ],
+  "fallbackObservations": [
+    {"url": "https://gosarchive.gov35.ru/", "resultCode": "access-blocked", "observedError": "ERR_EMPTY_RESPONSE", "note": "No usable catalog route confirmed in this attempt; no HTTP status was inferred."}
+  ]
+}

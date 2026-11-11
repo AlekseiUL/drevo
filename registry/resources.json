@@ -69,8 +69,9 @@
         "evidenceUrls": [
           "https://memorial-map.ru/"
         ],
-        "note": "В браузере 11.11.2026 открыты главная страница, форма поиска и выбор территории: Вологодская область, Череповец и муниципальные округа. Проверено покрытие интерфейса, а не полнота захоронений; новый именной поиск в этой проверке не выполнялся."
-      }
+        "note": "11.11.2026 выполнен браузерный маршрут: пример запроса с самого сайта → выдача → одна публичная карточка /dead/<uuid> → видимая фотография памятника. Проверена территория Вологодской области по умолчанию; полная надпись, все фильтры, полнота кладбищ и родство не проверялись. Подробный охват: registry/browser-routes.json."
+      },
+      "routeFile": "skills/genealogy-research/references/browser-routes/memorial-map.md"
     },
     {
       "id": "pomnim-online",
@@ -107,8 +108,9 @@
         "evidenceUrls": [
           "https://pomnim.online/search"
         ],
-        "note": "Прочитана входная страница; конкретные именные записи этим аудитом не проверялись."
-      }
+        "note": "11.11.2026 в браузере заполнены фамилия, имя и отчество исторического публичного лица; открыты выдача, одна карточка /burial/<id> и её фотография. Это проверка маршрута, не поиск семьи пользователя; все фильтры и отсутствие будущей CAPTCHA не проверены. Подробный охват: registry/browser-routes.json."
+      },
+      "routeFile": "skills/genealogy-research/references/browser-routes/pomnim-online.md"
     },
     {
       "id": "find-a-grave",
@@ -495,6 +497,19 @@
           "https://pamyat-naroda.ru/"
         ],
         "note": "Текущий веб-запрос вернул HTTP 401; внутренний поиск этим аудитом не проверен."
+      },
+      "recordPeriod": {
+        "from": 1939,
+        "to": 1945,
+        "note": "Маршрут участников Второй мировой войны 1939–1945; основной поиск ВОВ 1941–1945. Это период службы/события, а не рождения или позднего оформления копии.",
+        "evidenceUrls": [
+          "https://pamyat-naroda.ru/login/",
+          "https://pamyat-naroda.ru/how-to-search/"
+        ],
+        "checkedAt": "2026-11-11",
+        "eventTypes": [
+          "military"
+        ]
       }
     },
     {
@@ -532,6 +547,18 @@
           "https://obd-memorial.ru/html/"
         ],
         "note": "Прочитана входная страница; конкретные именные записи этим аудитом не проверялись."
+      },
+      "recordPeriod": {
+        "from": 1941,
+        "to": null,
+        "note": "Официально описаны Великая Отечественная война и послевоенный период. Верхняя граница не установлена; отсутствие границы не означает полное покрытие всех поздних лет.",
+        "evidenceUrls": [
+          "https://obd-memorial.ru/html/about.htm"
+        ],
+        "checkedAt": "2026-11-11",
+        "eventTypes": [
+          "military"
+        ]
       }
     },
     {
@@ -566,6 +593,19 @@
           "https://gwar.mil.ru/"
         ],
         "note": "Доступ веб-инструментом ограничен; требуется повторная проверка браузером."
+      },
+      "recordPeriod": {
+        "from": 1914,
+        "to": 1918,
+        "note": "Маршрут документов об участниках и событиях Первой мировой войны 1914–1918. Это период события, а не год рождения военнослужащего.",
+        "evidenceUrls": [
+          "https://gwar.mil.ru/about/",
+          "https://gwar.mil.ru/note/"
+        ],
+        "checkedAt": "2026-11-11",
+        "eventTypes": [
+          "military"
+        ]
       }
     },
     {
@@ -822,6 +862,18 @@
           "https://russiainphoto.ru/"
         ],
         "note": "Прочитана входная страница; конкретные именные записи этим аудитом не проверялись."
+      },
+      "recordPeriod": {
+        "from": 1840,
+        "to": 1999,
+        "note": "Заявленный владельцем период фотографий 1840–1999. Он не гарантирует наличие каждого места или года.",
+        "evidenceUrls": [
+          "https://russiainphoto.ru/"
+        ],
+        "checkedAt": "2026-11-11",
+        "eventTypes": [
+          "general"
+        ]
       }
     },
     {
@@ -937,7 +989,7 @@
     {
       "id": "dvinaland",
       "name": "ЕАИС архивов Архангельской области",
-      "url": "https://archives.dvinaland.ru/archive1/funds",
+      "url": "https://archives.dvinaland.ru/archive",
       "stage": "archives",
       "priority": 1,
       "cost": "free",
@@ -960,7 +1012,7 @@
       ],
       "access": {
         "browser": true,
-        "account": "none",
+        "account": "varies",
         "automation": "manual-browser"
       },
       "limits": [
@@ -969,12 +1021,14 @@
       ],
       "verification": {
         "checkedAt": "2026-11-11",
-        "status": "partial",
+        "status": "verified",
         "evidenceUrls": [
-          "https://archives.dvinaland.ru/archive1/funds"
+          "https://archives.dvinaland.ru/archive1/funds",
+          "https://archives.dvinaland.ru/archive"
         ],
-        "note": "В текущем веб-доступе HTTP 403; ранее каталог использовался в исходном исследовании. Нужен обычный браузер."
-      }
+        "note": "11.11.2026 в обычном браузере выполнен путь /archive → каталог → фонд → опись → публичная карточка дела. Прямой вход мог сначала вести на login. Карточки доступны гостю; просмотр/заказ дела требует входа. Наличие цифровых образов за карточкой не подтверждено."
+      },
+      "routeFile": "skills/genealogy-research/references/browser-routes/dvinaland.md"
     },
     {
       "id": "vologda-archives",
@@ -1013,7 +1067,7 @@
         "evidenceUrls": [
           "https://gosarchive.gov35.ru/"
         ],
-        "note": "Текущий вход вернул HTTP 502; авторизованный просмотр не проверен."
+        "note": "В текстовом веб-доступе зафиксирован HTTP 502; в последующей браузерной проверке 11.11.2026 — ERR_EMPTY_RESPONSE. Авторизованный просмотр и образы не проверены."
       }
     },
     {

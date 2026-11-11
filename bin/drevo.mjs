@@ -7,11 +7,14 @@ import { validateRegistry, validateCase, buildPlan, formatPlan } from '../lib/pl
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const readJSON = async file => JSON.parse(await readFile(file, 'utf8'));
 const registry = async () => validateRegistry(await readJSON(path.join(root, 'registry/resources.json')));
-const usage = `Древо 0.1.0 — инструменты генеалогического исследования
+const usage = `Древо 0.2.0 — инструменты генеалогического исследования
 
   node bin/drevo.mjs init <новая-папка-вне-репозитория>
-  node bin/drevo.mjs plan <case.json> [--json]
-  node bin/drevo.mjs audit <evidence.json> [--json]
+  node bin/drevo.mjs plan <case.json> [--all] [--limit 3] [--paid] [--json]
+  node bin/drevo.mjs audit <evidence.json> [--case <case.json>] [--json]
+  node bin/drevo.mjs tree-preview <папка-дела> [--include-hypotheses] [--public] [--json]
+  node bin/drevo.mjs tree-apply <папка-дела> [--json]
+  node bin/drevo.mjs tree-undo <папка-дела> [--json]
   node bin/drevo.mjs sources [--paid] [--json]
   node bin/drevo.mjs check
 
@@ -48,29 +51,51 @@ async function initializeCase(target) {
 
 try {
   const [command = 'help', ...args] = process.argv.slice(2);
-  const allowedFlags = command === 'sources' ? ['--json', '--paid'] : ['plan', 'audit'].includes(command) ? ['--json'] : [];
-  for (const arg of args) if (arg.startsWith('--') && !allowedFlags.includes(arg)) throw Error(`Неизвестный параметр: ${arg}`);
-  const positional = args.filter(a => !a.startsWith('--'));
-  const expected = ['init', 'plan', 'audit'].includes(command) ? 1 : 0;
+  const flagsByCommand = {
+    sources:['--json','--paid'],plan:['--json','--all','--paid','--limit'],audit:['--json','--case'],
+    'tree-preview':['--json','--public','--include-hypotheses'],'tree-apply':['--json'],'tree-undo':['--json'],
+  };
+  const values = new Map(), positional = [];
+  for (let i=0; i<args.length; i++) {
+    const arg = args[i];
+    if (!arg.startsWith('--')) { positional.push(arg); continue; }
+    if (!(flagsByCommand[command] || []).includes(arg) || values.has(arg)) throw Error(`Неизвестный или повторный параметр: ${arg}`);
+    if (['--case','--limit'].includes(arg)) {
+      if (!args[i+1] || args[i+1].startsWith('--')) throw Error(`Нужно значение ${arg}`);
+      values.set(arg,args[++i]);
+    } else values.set(arg,true);
+  }
+  const expected = ['init','plan','audit','tree-preview','tree-apply','tree-undo'].includes(command) ? 1 : 0;
   if (positional.length !== expected) throw Error(`Команда ${command} ожидает ${expected} аргумент(а).\n${usage}`);
-  const json = args.includes('--json');
+  const json = values.has('--json');
   if (command === 'help' || command === '--help' || command === '-h') console.log(usage);
   else if (command === 'init') await initializeCase(positional[0]);
   else if (command === 'plan') {
-    const plan = buildPlan(await readJSON(positional[0]), await registry());
+    const plan = buildPlan(await readJSON(positional[0]), await registry(), {all:values.has('--all'),paid:values.has('--paid'),limit:values.has('--limit') ? Number(values.get('--limit')) : 3});
     console.log(json ? JSON.stringify(plan, null, 2) : formatPlan(plan));
   } else if (command === 'audit') {
     const {auditEvidence} = await import('../lib/evidence.mjs');
-    const report = auditEvidence(await readJSON(positional[0]));
+    const packet = await readJSON(positional[0]);
+    const {auditCase} = await import('../lib/projection.mjs');
+    const report = values.has('--case') ? auditCase(await readJSON(values.get('--case')),packet) : auditEvidence(packet);
     console.log(json ? JSON.stringify(report, null, 2) : [report.notice, ...report.issues.map(x => `${x.severity.toUpperCase()} ${x.claimId || 'packet'}: ${x.message}`), `Ошибок: ${report.errors}; замечаний: ${report.warnings}`].join('\n'));
     if (report.errors) process.exitCode = 1;
+  } else if (['tree-preview','tree-apply','tree-undo'].includes(command)) {
+    const {previewTree,applyTree,undoTree,formatPreview} = await import('../lib/tree-store.mjs');
+    const result = command === 'tree-preview' ? await previewTree(positional[0],{public:values.has('--public'),includeHypotheses:values.has('--include-hypotheses')}) : command === 'tree-apply' ? await applyTree(positional[0]) : await undoTree(positional[0]);
+    console.log(json ? JSON.stringify(result,null,2) : command === 'tree-preview' ? formatPreview(result) : `${result.notice || 'Версия дерева применена.'}\n${result.viewerDir ? `Viewer: ${result.viewerDir}\nЗапуск из его папки: npm run dev` : 'Текущее дерево отсутствует; сохранённые версии доступны в .drevo/revisions/.'}`);
   } else if (command === 'sources') {
     const r = await registry();
     const entries = args.includes('--paid') ? r.resources.filter(x => x.cost === 'paid') : r.resources;
     console.log(json ? JSON.stringify(entries, null, 2) : entries.map(x => `${x.id} · ${x.name} · ${x.cost} · ${x.verification.status}\n  ${x.url}\n  ${x.whenToUse}`).join('\n\n'));
   } else if (command === 'check') {
     const r = await registry();
-    validateCase(await readJSON(path.join(root, 'templates/case.example.json')));
+    const data = await readJSON(path.join(root, 'templates/case.example.json'));
+    validateCase(data);
+    const {projectCase} = await import('../lib/projection.mjs');
+    projectCase(data,await readJSON(path.join(root, 'templates/evidence.example.json')));
+    const routes = await readJSON(path.join(root,'registry/browser-routes.json'));
+    for (const route of routes.routes) await readFile(path.join(root,route.routeFile),'utf8');
     console.log(`Реестр: ${r.resources.length} маршрутов, ${r.resources.filter(x => x.cost === 'paid').length} платных. Пример дела: валиден.`);
   } else throw Error(`Неизвестная команда: ${command}\n${usage}`);
 } catch (error) {

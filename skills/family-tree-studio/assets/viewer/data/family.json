@@ -12,7 +12,32 @@
       "lifeStatus": "deceased",
       "confidence": "documented",
       "place": "Лиственный — вымышленный город",
-      "sourceLabel": "Полностью вымышленный демонстрационный пример"
+      "sourceLabel": "Полностью вымышленный демонстрационный пример",
+      "evidence": [
+        {
+          "claimId": "claim-l1-birth",
+          "statement": "Леонид Листов родился в 1935 году.",
+          "status": "documented",
+          "sources": [
+            {
+              "id": "demo-birth-l1",
+              "title": "Вымышленная запись о рождении",
+              "url": "https://example.invalid/drevo/birth-l1",
+              "locator": "Учебная книга, страница 12, запись 4. Реального документа нет.",
+              "reading": "Учебная строка: «Леонид Листов, 1935 год».",
+              "reasoning": "В демонстрации запись отнесена к этому человеку; реальная идентификация не проводилась.",
+              "information": "primary",
+              "type": "direct"
+            }
+          ],
+          "conflicts": [],
+          "conclusion": {
+            "text": "В вымышленной карточке сохранён год 1935.",
+            "reasoning": "Это учебный пример привязки одного события к записи.",
+            "limitations": "Материалы придуманы и ничего не говорят о реальных людях."
+          }
+        }
+      ]
     },
     {
       "id": "l2",
@@ -92,48 +117,278 @@
       "sourceLabel": "Полностью вымышленный демонстрационный пример"
     }
   ],
-  "families": [
+  "families": [],
+  "relationships": [],
+  "connections": [
     {
-      "id": "roots",
-      "parents": [
-        "l1",
-        "l2"
+      "id": "roots-l1-gleb",
+      "a": "l1",
+      "b": "gleb",
+      "type": "parent-child",
+      "confidence": "documented",
+      "claimIds": [
+        "claim-roots-l1-gleb"
       ],
-      "children": [
-        "gleb"
-      ],
-      "confidence": "documented"
+      "evidence": [
+        {
+          "claimId": "claim-roots-l1-gleb",
+          "statement": "Леонид Листов назван отцом Глеба Листова.",
+          "status": "documented",
+          "sources": [
+            {
+              "id": "demo-source-roots-l1-gleb",
+              "title": "Вымышленная запись для демонстрации Древа",
+              "url": "https://example.invalid/drevo/roots-l1-gleb",
+              "locator": "Учебная коллекция, запись roots-l1-gleb, строка 1. Реального документа нет.",
+              "reading": "Леонид Листов назван отцом Глеба Листова.",
+              "reasoning": "В этом искусственном примере запись прямо называет двух людей и отношение между ними. В настоящем исследовании нужно отдельно проверить личности и происхождение записи.",
+              "information": "primary",
+              "type": "direct",
+              "form": "authored",
+              "accessedAt": "2026-11-11"
+            }
+          ],
+          "conflicts": [],
+          "conclusion": null
+        }
+      ]
     },
     {
-      "id": "trace",
-      "parents": [
-        "t1"
+      "id": "roots-l2-gleb",
+      "a": "l2",
+      "b": "gleb",
+      "type": "parent-child",
+      "confidence": "reported",
+      "claimIds": [
+        "claim-roots-l2-gleb"
       ],
-      "children": [
-        "vera"
-      ],
-      "confidence": "hypothesis"
+      "evidence": [
+        {
+          "claimId": "claim-roots-l2-gleb",
+          "statement": "Надежда Листова названа матерью Глеба Листова.",
+          "status": "family-story",
+          "sources": [
+            {
+              "id": "demo-source-roots-l2-gleb",
+              "title": "Вымышленная запись для демонстрации Древа",
+              "url": "https://example.invalid/drevo/roots-l2-gleb",
+              "locator": "Учебная коллекция, запись roots-l2-gleb, строка 1. Реального документа нет.",
+              "reading": "Надежда Листова названа матерью Глеба Листова.",
+              "reasoning": "В этом искусственном примере запись прямо называет двух людей и отношение между ними. В настоящем исследовании нужно отдельно проверить личности и происхождение записи.",
+              "information": "undetermined",
+              "type": "direct",
+              "form": "authored",
+              "accessedAt": "2026-11-11"
+            }
+          ],
+          "conflicts": [],
+          "conclusion": null
+        }
+      ]
     },
     {
-      "id": "home",
-      "parents": [
-        "gleb",
-        "vera"
+      "id": "trace-t1-vera",
+      "a": "t1",
+      "b": "vera",
+      "type": "parent-child",
+      "confidence": "hypothesis",
+      "claimIds": [
+        "claim-trace-t1-vera"
       ],
-      "children": [
-        "mira",
-        "semen"
+      "evidence": [
+        {
+          "claimId": "claim-trace-t1-vera",
+          "statement": "Оскар Тестов назван отцом Веры Листовой.",
+          "status": "hypothesis",
+          "sources": [
+            {
+              "id": "demo-source-trace-t1-vera",
+              "title": "Вымышленная запись для демонстрации Древа",
+              "url": "https://example.invalid/drevo/trace-t1-vera",
+              "locator": "Учебная коллекция, запись trace-t1-vera, строка 1. Реального документа нет.",
+              "reading": "В учебной записи встречаются совпадающие имена, но нет достаточных сведений для окончательного отождествления.",
+              "reasoning": "Совпадение допускает такую связь, но не исключает однофамильцев. До проверки второй независимой записи это гипотеза.",
+              "information": "undetermined",
+              "type": "indirect",
+              "form": "authored",
+              "accessedAt": "2026-11-11"
+            }
+          ],
+          "conflicts": [],
+          "conclusion": null
+        }
+      ]
+    },
+    {
+      "id": "home-gleb-mira",
+      "a": "gleb",
+      "b": "mira",
+      "type": "parent-child",
+      "confidence": "documented",
+      "claimIds": [
+        "claim-home-gleb-mira"
       ],
-      "confidence": "reported"
-    }
-  ],
-  "relationships": [
+      "evidence": [
+        {
+          "claimId": "claim-home-gleb-mira",
+          "statement": "Глеб Листов назван отцом Миры Листовой.",
+          "status": "documented",
+          "sources": [
+            {
+              "id": "demo-source-home-gleb-mira",
+              "title": "Вымышленная запись для демонстрации Древа",
+              "url": "https://example.invalid/drevo/home-gleb-mira",
+              "locator": "Учебная коллекция, запись home-gleb-mira, строка 1. Реального документа нет.",
+              "reading": "Глеб Листов назван отцом Миры Листовой.",
+              "reasoning": "В этом искусственном примере запись прямо называет двух людей и отношение между ними. В настоящем исследовании нужно отдельно проверить личности и происхождение записи.",
+              "information": "primary",
+              "type": "direct",
+              "form": "authored",
+              "accessedAt": "2026-11-11"
+            }
+          ],
+          "conflicts": [],
+          "conclusion": null
+        }
+      ]
+    },
+    {
+      "id": "home-gleb-semen",
+      "a": "gleb",
+      "b": "semen",
+      "type": "parent-child",
+      "confidence": "reported",
+      "claimIds": [
+        "claim-home-gleb-semen"
+      ],
+      "evidence": [
+        {
+          "claimId": "claim-home-gleb-semen",
+          "statement": "Глеб Листов назван отцом Семёна Листова.",
+          "status": "family-story",
+          "sources": [
+            {
+              "id": "demo-source-home-gleb-semen",
+              "title": "Вымышленная запись для демонстрации Древа",
+              "url": "https://example.invalid/drevo/home-gleb-semen",
+              "locator": "Учебная коллекция, запись home-gleb-semen, строка 1. Реального документа нет.",
+              "reading": "Глеб Листов назван отцом Семёна Листова.",
+              "reasoning": "В этом искусственном примере запись прямо называет двух людей и отношение между ними. В настоящем исследовании нужно отдельно проверить личности и происхождение записи.",
+              "information": "undetermined",
+              "type": "direct",
+              "form": "authored",
+              "accessedAt": "2026-11-11"
+            }
+          ],
+          "conflicts": [],
+          "conclusion": null
+        }
+      ]
+    },
+    {
+      "id": "home-vera-mira",
+      "a": "vera",
+      "b": "mira",
+      "type": "parent-child",
+      "confidence": "hypothesis",
+      "claimIds": [
+        "claim-home-vera-mira"
+      ],
+      "evidence": [
+        {
+          "claimId": "claim-home-vera-mira",
+          "statement": "Вера Листова названа матерью Миры Листовой.",
+          "status": "hypothesis",
+          "sources": [
+            {
+              "id": "demo-source-home-vera-mira",
+              "title": "Вымышленная запись для демонстрации Древа",
+              "url": "https://example.invalid/drevo/home-vera-mira",
+              "locator": "Учебная коллекция, запись home-vera-mira, строка 1. Реального документа нет.",
+              "reading": "В учебной записи встречаются совпадающие имена, но нет достаточных сведений для окончательного отождествления.",
+              "reasoning": "Совпадение допускает такую связь, но не исключает однофамильцев. До проверки второй независимой записи это гипотеза.",
+              "information": "undetermined",
+              "type": "indirect",
+              "form": "authored",
+              "accessedAt": "2026-11-11"
+            }
+          ],
+          "conflicts": [
+            {
+              "description": "В одном вымышленном рассказе мать названа Верой, в другом — Валерией. Пока не установлено, это вариант имени или другой человек.",
+              "status": "open",
+              "resolution": ""
+            }
+          ],
+          "conclusion": null
+        }
+      ]
+    },
+    {
+      "id": "home-vera-semen",
+      "a": "vera",
+      "b": "semen",
+      "type": "parent-child",
+      "confidence": "reported",
+      "claimIds": [
+        "claim-home-vera-semen"
+      ],
+      "evidence": [
+        {
+          "claimId": "claim-home-vera-semen",
+          "statement": "Вера Листова названа матерью Семёна Листова.",
+          "status": "family-story",
+          "sources": [
+            {
+              "id": "demo-source-home-vera-semen",
+              "title": "Вымышленная запись для демонстрации Древа",
+              "url": "https://example.invalid/drevo/home-vera-semen",
+              "locator": "Учебная коллекция, запись home-vera-semen, строка 1. Реального документа нет.",
+              "reading": "Вера Листова названа матерью Семёна Листова.",
+              "reasoning": "В этом искусственном примере запись прямо называет двух людей и отношение между ними. В настоящем исследовании нужно отдельно проверить личности и происхождение записи.",
+              "information": "undetermined",
+              "type": "direct",
+              "form": "authored",
+              "accessedAt": "2026-11-11"
+            }
+          ],
+          "conflicts": [],
+          "conclusion": null
+        }
+      ]
+    },
     {
       "id": "sisters",
-      "kind": "sibling",
       "a": "vera",
       "b": "zoya",
-      "confidence": "reported"
+      "type": "sibling",
+      "confidence": "reported",
+      "claimIds": [
+        "claim-sisters"
+      ],
+      "evidence": [
+        {
+          "claimId": "claim-sisters",
+          "statement": "Вера Листова и Зоя Тестова названы сёстрами.",
+          "status": "family-story",
+          "sources": [
+            {
+              "id": "demo-source-sisters",
+              "title": "Вымышленная запись для демонстрации Древа",
+              "url": "https://example.invalid/drevo/sisters",
+              "locator": "Учебная коллекция, запись sisters, строка 1. Реального документа нет.",
+              "reading": "Вера Листова и Зоя Тестова названы сёстрами.",
+              "reasoning": "В этом искусственном примере запись прямо называет двух людей и отношение между ними. В настоящем исследовании нужно отдельно проверить личности и происхождение записи.",
+              "information": "undetermined",
+              "type": "direct",
+              "form": "authored",
+              "accessedAt": "2026-11-11"
+            }
+          ],
+          "conflicts": [],
+          "conclusion": null
+        }
+      ]
     }
   ]
 }

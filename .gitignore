@@ -12,3 +12,5 @@ dist/
 *.log
 *.pid
 .playwright-mcp/
+
+.drevo/

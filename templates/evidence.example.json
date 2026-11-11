@@ -10,13 +10,17 @@
       "locator": "Демонстрационный фрагмент 1; реального документа нет",
       "form": "authored",
       "independenceGroup": "fictional-family-account",
-      "notes": "Искусственный пример для проверки формата, не исторический источник."
+      "notes": "Искусственный пример для проверки формата, не исторический источник.",
+      "visibility": "public"
     }
   ],
   "claims": [
     {
       "id": "demo-father",
-      "personIds": ["vera", "sergey"],
+      "personIds": [
+        "vera",
+        "sergey"
+      ],
       "statement": "В учебном рассказе Сергей назван отцом Веры; документальная проверка не выполнена.",
       "status": "family-story",
       "evidence": [
@@ -30,7 +34,17 @@
       ],
       "researchCoverage": [],
       "conflicts": [],
-      "conclusion": null
+      "conclusion": null,
+      "assertion": {
+        "kind": "relationship",
+        "from": "sergey",
+        "to": "vera",
+        "relationshipType": "parent-child"
+      },
+      "tree": {
+        "include": true,
+        "visibility": "public"
+      }
     }
   ]
 }

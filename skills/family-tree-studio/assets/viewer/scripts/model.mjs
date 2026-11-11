@@ -3,7 +3,42 @@ import path from 'node:path';
 export const CERTAINTIES = new Set(['documented', 'reported', 'hypothesis', 'unknown']);
 const IDENTIFIER = /^[a-zA-Z0-9_-]{1,80}$/;
 const relationTypes = new Set(['parent-child', 'adoptive', 'guardian']);
+const connectionTypes = new Set([...relationTypes, 'partner', 'sibling']);
+const claimStatuses = new Set(['family-story', 'candidate', 'hypothesis', 'documented', 'concluded']);
+const informationTypes = new Set(['primary', 'secondary', 'undetermined']);
+const evidenceTypes = new Set(['direct', 'indirect', 'negative']);
+const sourceForms = new Set(['original', 'derivative', 'authored', 'unknown']);
 const text = value => typeof value === 'string' ? value : '';
+const record = value => value !== null && typeof value === 'object' && !Array.isArray(value);
+const nonempty = value => typeof value === 'string' && value.trim().length > 0;
+function validateEvidence(evidence, owner) {
+  if (evidence == null) return;
+  if (!Array.isArray(evidence)) throw Error(`Свидетельства должны быть массивом: ${owner}`);
+  const ids = new Set();
+  for (const claim of evidence) {
+    if (!record(claim) || !nonempty(claim.claimId) || ids.has(claim.claimId) || !nonempty(claim.statement) || !claimStatuses.has(claim.status)) throw Error(`Некорректное утверждение: ${owner}`);
+    ids.add(claim.claimId);
+    if (claim.assertionLabel != null && typeof claim.assertionLabel !== 'string') throw Error(`Подпись исходного утверждения должна быть строкой: ${claim.claimId}`);
+    if (!Array.isArray(claim.sources) || !Array.isArray(claim.conflicts)) throw Error(`Нужны sources и conflicts: ${claim.claimId}`);
+    for (const source of claim.sources) {
+      if (!record(source) || !nonempty(source.id) || !nonempty(source.title)) throw Error(`Некорректный источник: ${claim.claimId}`);
+      for (const key of ['url', 'locator', 'reading', 'reasoning', 'negativeScope', 'accessedAt']) if (source[key] != null && typeof source[key] !== 'string') throw Error(`Некорректное поле источника ${key}`);
+      if (source.information && !informationTypes.has(source.information)) throw Error('Неизвестный тип происхождения информации');
+      if (source.type && !evidenceTypes.has(source.type)) throw Error('Неизвестный тип свидетельства');
+      if (source.form && !sourceForms.has(source.form)) throw Error('Неизвестная форма источника');
+    }
+    for (const conflict of claim.conflicts) if (!record(conflict) || !nonempty(conflict.description) || !['open', 'resolved'].includes(conflict.status) || (conflict.resolution != null && typeof conflict.resolution !== 'string')) throw Error(`Некорректное противоречие: ${claim.claimId}`);
+    if (claim.conclusion != null && (!record(claim.conclusion) || ['text', 'reasoning', 'limitations'].some(key => claim.conclusion[key] != null && typeof claim.conclusion[key] !== 'string'))) throw Error(`Некорректный вывод: ${claim.claimId}`);
+  }
+}
+export function publicEvidence(evidence = []) {
+  return evidence.map(claim => ({
+    claimId: claim.claimId, statement: claim.statement, status: claim.status, assertionLabel: text(claim.assertionLabel),
+    sources: claim.sources.map(source => ({ id: source.id, title: source.title, url: webLink(source.url), locator: text(source.locator), reading: text(source.reading), reasoning: text(source.reasoning), negativeScope: text(source.negativeScope), accessedAt: text(source.accessedAt), form: source.form || null, information: source.information || null, type: source.type || null })),
+    conflicts: claim.conflicts.map(conflict => ({ description: conflict.description, status: conflict.status, resolution: text(conflict.resolution) })),
+    conclusion: claim.conclusion ? { text: text(claim.conclusion.text), reasoning: text(claim.conclusion.reasoning), limitations: text(claim.conclusion.limitations) } : null,
+  }));
+}
 function dateCaption(person, event) {
   const alternatives = person[event + 'YearCandidates'];
   const value = person[event + 'Date'] || (alternatives ? alternatives.join(' или ') : person[event + 'Year'] ? String(person[event + 'Year']) : '');
@@ -49,9 +84,11 @@ export function validateFamily(input) {
     if (born && died && born[0] > died[1]) throw Error(`Смерть раньше рождения: ${p.id}`);
     if (p.portrait?.kind && !['none', 'original', 'generated', 'selected'].includes(p.portrait.kind)) throw Error('Неизвестное происхождение фотографии');
     if (p.portrait?.path) photoPath(p.portrait.path);
+    validateEvidence(p.evidence, p.id);
   }
   if (!known.has(input.rootPerson)) throw Error('rootPerson должен указывать на существующего человека');
   const recordIds = new Set();
+  for (const key of ['families', 'relationships', 'connections']) if (input[key] != null && !Array.isArray(input[key])) throw Error(`${key} должен быть массивом`);
   for (const f of input.families || []) {
     if (!IDENTIFIER.test(f.id) || recordIds.has(f.id)) throw Error('Неверный идентификатор семьи');
     recordIds.add(f.id);
@@ -67,6 +104,19 @@ export function validateFamily(input) {
     recordIds.add(r.id);
     if (r.confidence && !CERTAINTIES.has(r.confidence)) throw Error('Неверное основание связи');
   }
+  const connections = new Set();
+  for (const c of input.connections || []) {
+    if (!record(c) || !IDENTIFIER.test(c.id) || recordIds.has(c.id) || !known.has(c.a) || !known.has(c.b) || c.a === c.b) throw Error('Некорректный идентификатор или участник связи');
+    recordIds.add(c.id);
+    if (!connectionTypes.has(c.type) || !CERTAINTIES.has(c.confidence)) throw Error(`Неизвестный тип или статус связи: ${c.id}`);
+    const endpoints = ['partner', 'sibling'].includes(c.type) ? [c.a, c.b].sort() : [c.a, c.b];
+    const identity = JSON.stringify([c.type, ...endpoints]);
+    if (connections.has(identity)) throw Error('Повторное отношение: объедините утверждения в evidence одной связи');
+    connections.add(identity);
+    if (c.claimIds != null && (!Array.isArray(c.claimIds) || c.claimIds.some(id => !nonempty(id)) || new Set(c.claimIds).size !== c.claimIds.length)) throw Error('claimIds должен содержать уникальные идентификаторы');
+    validateEvidence(c.evidence, c.id);
+    if (c.evidence?.some(claim => c.claimIds && !c.claimIds.includes(claim.claimId))) throw Error(`Свидетельство не указано в claimIds: ${c.id}`);
+  }
   return input;
 }
 
@@ -81,6 +131,7 @@ export function publicFamily(raw) {
     place: text(p.place), confidence: p.confidence || 'unknown', publicNote: text(p.publicNote),
     sourceLabel: text(p.sourceLabel),
     sources: (Array.isArray(p.publicSources) ? p.publicSources : []).filter(s => s && webLink(s.url)).map(s => ({ label: text(s.label) || 'Источник', url: webLink(s.url) })),
+    evidence: publicEvidence(p.evidence || []),
     photo: p.portrait?.path && p.portrait.kind && p.portrait.kind !== 'none' ? { path: photoPath(p.portrait.path), kind: p.portrait.kind } : null,
   }));
   const families = (raw.families || []).map(f => ({ id: f.id, adults: f.parents || f.partners, children: f.children || [], type: f.relationshipType || 'parent-child', confidence: f.confidence || 'unknown', label: text(f.label) }));
@@ -91,6 +142,15 @@ export function publicFamily(raw) {
     else for (let i = 1; i < f.adults.length; i++) edges.push({ id: `${f.id}-${i}`, a: f.adults[0], b: f.adults[i], type: 'partner', confidence: f.confidence, family: f.id });
   }
   edges.push(...siblings);
+  edges.push(...(raw.connections || []).map(c => ({ id: c.id, a: c.a, b: c.b, type: c.type, confidence: c.confidence, claimIds: c.claimIds || (c.evidence || []).map(e => e.claimId), evidence: publicEvidence(c.evidence || []) })));
+  const edgeIds = new Set(), edgeKeys = new Set();
+  for (const edge of edges) {
+    if (edgeIds.has(edge.id)) throw Error('Повторный идентификатор ребра'); edgeIds.add(edge.id);
+    const endpoints = ['sibling', 'partner'].includes(edge.type) ? [edge.a, edge.b].sort() : [edge.a, edge.b];
+    const key = JSON.stringify([edge.type, ...endpoints]);
+    if (edgeKeys.has(key)) throw Error('Повторная связь между legacy-данными и connections'); edgeKeys.add(key);
+    edge.claimIds ||= []; edge.evidence ||= [];
+  }
   return { title: text(raw.title) || 'Семейное древо', demo: raw.demo === true, rootPerson: raw.rootPerson, persons, families, edges };
 }
 
@@ -101,7 +161,11 @@ export function layoutFamily(model) {
     for (const [id, group] of groups) if (labels.has(group)) groups.set(id, groups.get(ids[0]));
   };
   for (const f of model.families) combine(f.adults);
-  for (const e of model.edges) if (e.type === 'sibling') combine([e.a, e.b]);
+  for (const e of model.edges) if (['sibling', 'partner'].includes(e.type)) combine([e.a, e.b]);
+  // Align co-parents for layout only; do not invent a partnership edge between them.
+  const coParents = new Map();
+  for (const edge of model.edges) if (['parent-child', 'adoptive'].includes(edge.type)) { if (!coParents.has(edge.b)) coParents.set(edge.b, []); coParents.get(edge.b).push(edge.a); }
+  for (const ids of coParents.values()) combine(ids);
   const levels = new Map([...groups.values()].map(id => [id, 0]));
   const vertical = model.edges.filter(e => !['sibling', 'partner'].includes(e.type));
   for (const e of vertical) if (groups.get(e.a) === groups.get(e.b)) throw Error('Родительская связь конфликтует с одним поколением');

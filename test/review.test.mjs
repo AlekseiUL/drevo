@@ -34,7 +34,8 @@ test('question with no record types is rejected instead of silently producing no
 
 test('human-readable paid proposal retains access failures and resource limits', () => {
   const c = makeCase(); c.regions = ['worldwide']; c.questions[0].recordTypes = ['immigration'];
-  const plan = buildPlan(c, registry), ancestry = plan.paidOptions.find(x => x.resourceId === 'ancestry-paid');
+  c.questions[0].context = {collectionId: 'fictional-collection', paidResourceId: 'ancestry-paid', paidReason: 'Вымышленная проверка: нужная запись обнаружена в коллекции, бесплатный оригинал недоступен.'};
+  const plan = buildPlan(c, registry, {paid: true}), ancestry = plan.paidOptions.find(x => x.resourceId === 'ancestry-paid');
   assert.ok(ancestry);
   const markdown = formatPlan(plan);
   assert.ok(markdown.includes(ancestry.verification.note), '403 status must not disappear from human-readable proposal');

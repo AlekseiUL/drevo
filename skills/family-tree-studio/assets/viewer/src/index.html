@@ -21,10 +21,11 @@
   </header>
   <div class="heading"><span id="demo-label" class="eyebrow">СЕМЕЙНАЯ ИСТОРИЯ</span><h1 id="tree-title">Корни. Люди. Истории.</h1><p id="summary">Загружаем семейное дерево…</p></div>
   <main id="garden" tabindex="0" aria-label="Интерактивное семейное дерево">
-    <div id="world"><svg id="branches" aria-hidden="true"></svg><div id="leaves"></div></div>
+    <div id="world"><svg id="branches" role="group" aria-label="Родственные связи и их основания"></svg><div id="leaves"></div></div>
   </main>
   <div id="selection-note" class="selection-note" role="status" hidden></div>
   <aside id="details" hidden aria-label="Карточка человека"><button id="close-details" class="round-button" aria-label="Закрыть карточку">×</button><div id="detail-body"></div></aside>
+  <dialog id="evidence-dialog" aria-labelledby="evidence-title"><div class="evidence-header"><span class="eyebrow">ОТ УТВЕРЖДЕНИЯ К ИСТОЧНИКУ</span><button id="close-evidence" class="round-button" aria-label="Закрыть основания">×</button><h2 id="evidence-title">Почему эта связь?</h2><p id="evidence-subtitle"></p></div><div id="evidence-body"></div></dialog>
   <footer class="tools">
     <div class="zoom-tools"><button id="zoom-out" aria-label="Отдалить">−</button><button id="zoom-level" aria-label="Масштаб сто процентов">100%</button><button id="zoom-in" aria-label="Приблизить">+</button><span></span><button id="fit">Всё древо</button></div>
     <div class="relation-tools"><label for="mode">Связи</label><select id="mode"><option value="near">Рядом</option><option value="ancestors">Предки</option><option value="descendants">Потомки</option><option value="path">Путь</option></select><select id="target" aria-label="До кого показать путь" hidden></select></div>

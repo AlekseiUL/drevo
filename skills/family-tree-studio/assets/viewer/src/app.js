@@ -11,6 +11,66 @@ function vector(tag, attrs) { const n = document.createElementNS(svgNS, tag); fo
 const life = p => `${p.birth || 'Дата рождения неизвестна'}${p.death ? ' — ' + p.death : p.lifeStatus === 'deceased' ? ' — дата смерти неизвестна' : ''}`;
 const photoTitle = p => !p.photo ? 'Фотография пока не добавлена' : p.photo.kind === 'generated' ? 'Воображаемый портрет · не историческое фото' : p.photo.kind === 'original' ? 'Подлинная фотография' : 'Фотография, выбранная владельцем';
 const relationTitle = e => `${kinds[e.type]} · ${basis[e.confidence]}`;
+const openConflicts = item => (item.evidence || []).flatMap(claim => claim.conflicts || []).filter(conflict => conflict.status === 'open');
+const claimNames = { 'family-story': 'Семейное сообщение', candidate: 'Кандидат на проверку', hypothesis: 'Гипотеза', documented: 'Есть документальное основание', concluded: 'Оформлен исследовательский вывод' };
+const informationNames = { primary: 'Первичная информация', secondary: 'Вторичная информация', undetermined: 'Происхождение информации не определено' };
+const evidenceNames = { direct: 'Прямое свидетельство', indirect: 'Косвенное свидетельство', negative: 'Отрицательное свидетельство' };
+const formNames = { original: 'Оригинальный источник', derivative: 'Производная копия', authored: 'Авторское изложение', unknown: 'Форма источника не определена' };
+function evidenceButton(item, isPerson = false) {
+  const button = node('button', isPerson ? 'Почему указаны эти сведения?' : 'Почему эта связь?', 'evidence-button');
+  button.type = 'button';
+  button.setAttribute('aria-label', isPerson ? `Основания сведений: ${item.name}` : `Почему эта связь: ${people.get(item.a).name} — ${people.get(item.b).name}`);
+  button.onclick = () => showEvidence(item, isPerson); return button;
+}
+function evidenceParagraph(parent, heading, value, className = '') {
+  if (!value) return;
+  const section = node('section', null, 'evidence-field ' + className); section.append(node('h4', heading), node('p', value)); parent.append(section);
+}
+function showEvidence(item, isPerson = false) {
+  const dialog = byId('evidence-dialog'), body = byId('evidence-body'); body.replaceChildren();
+  byId('evidence-title').textContent = isPerson ? 'Основания сведений' : 'Почему эта связь?';
+  byId('evidence-subtitle').textContent = isPerson ? item.name : `${people.get(item.a).name} → ${people.get(item.b).name}\n${relationTitle(item)}`;
+  if (model.demo) body.append(node('p', 'Учебный пример: все утверждения и документы вымышлены. Ссылки example.invalid не ведут к историческим материалам.', 'evidence-demo'));
+  if (openConflicts(item).length) body.append(node('p', 'Есть неразрешённое противоречие. Метка «по документу» не отменяет его и не делает вывод окончательным.', 'evidence-warning'));
+  if (!(item.evidence || []).length) body.append(node('p', 'Обоснование пока не прикреплено. Показанная метка сама по себе не подтверждает связь; добавьте конкретное утверждение, источник и объяснение.', 'evidence-empty'));
+  for (const claim of item.evidence || []) {
+    const article = node('article', null, 'claim-card'); article.dataset.claim = claim.claimId;
+    article.append(node('p', claimNames[claim.status] || 'Статус не указан', 'claim-status'), node('h3', claim.statement));
+    if (claim.assertionLabel) article.append(node('p', 'Для дерева: ' + claim.assertionLabel, 'assertion-label'));
+    if (!claim.sources.length) article.append(node('p', 'Источники к этому утверждению пока не приложены.', 'evidence-empty'));
+    for (const source of claim.sources) {
+      const box = node('section', null, 'source-card'); box.dataset.source = source.id;
+      const heading = node('h4', source.title); box.append(heading);
+      if (source.url) {
+        let url; try { url = new URL(source.url); } catch { url = null; }
+        if (url && ['https:', 'http:'].includes(url.protocol)) { const link = node('a', 'Открыть источник ↗'); link.href = url.href; link.target = '_blank'; link.rel = 'noopener noreferrer'; box.append(link); }
+      }
+      evidenceParagraph(box, 'Где именно', source.locator || 'Координаты записи пока не указаны.');
+      const metadata = [formNames[source.form], source.accessedAt ? 'Проверено: ' + source.accessedAt : ''].filter(Boolean);
+      if (metadata.length) box.append(node('p', metadata.join(' · '), 'source-classification'));
+      const labels = [informationNames[source.information], evidenceNames[source.type]].filter(Boolean);
+      if (labels.length) box.append(node('p', labels.join(' · '), 'source-classification'));
+      evidenceParagraph(box, 'Что прочитано в источнике', source.reading, 'source-reading');
+      evidenceParagraph(box, 'Как это связано с утверждением', source.reasoning);
+      if (source.type === 'negative') evidenceParagraph(box, 'Почему запись ожидалась и какой охват проверен', source.negativeScope || 'Охват отрицательного свидетельства пока не указан. По отсутствию записи нельзя делать окончательный вывод.', !source.negativeScope ? 'evidence-warning' : '');
+      article.append(box);
+    }
+    for (const conflict of claim.conflicts) {
+      const box = node('section', null, 'conflict-card ' + conflict.status);
+      box.append(node('h4', conflict.status === 'open' ? 'Противоречие ещё открыто' : 'Противоречие разобрано'), node('p', conflict.description));
+      evidenceParagraph(box, 'Объяснение решения', conflict.resolution); article.append(box);
+    }
+    if (claim.conclusion) {
+      const conclusion = node('section', null, 'conclusion-card');
+      evidenceParagraph(conclusion, 'Вывод исследования', claim.conclusion.text);
+      evidenceParagraph(conclusion, 'Почему сделан такой вывод', claim.conclusion.reasoning);
+      evidenceParagraph(conclusion, 'Ограничения вывода', claim.conclusion.limitations); article.append(conclusion);
+    }
+    body.append(article);
+  }
+  if (!dialog.open) dialog.showModal();
+  dialog.scrollTop = 0;
+}
 function portrait(p, detail = false) {
   if (p.photo) { const img = new Image(); img.src = p.photo.path; img.alt = p.name; img.className = detail ? 'detail-portrait' : 'portrait'; return img; }
   const letters = p.name.split(/\s+/).slice(0, 2).map(s => s[0]).join('');
@@ -31,8 +91,12 @@ function drawFamily() {
   byId('branches').setAttribute('width', model.width); byId('branches').setAttribute('height', model.height);
   const connected = new Set(model.edges.flatMap(e => [e.a, e.b]));
   for (const e of model.edges) {
-    const line = vector('path', { d: branchShape(e), class: 'branch ' + e.confidence });
+    const line = vector('path', { d: branchShape(e), class: 'branch ' + e.confidence + (openConflicts(e).length ? ' has-conflict' : ''), 'data-connection-line': e.id, 'aria-hidden': true });
     byId('branches').append(line); lines.set(e.id, line);
+    const hit = vector('path', { d: branchShape(e), class: 'branch-hit', role: 'button', tabindex: 0, 'data-connection': e.id, 'aria-label': `Почему эта связь: ${people.get(e.a).name} — ${people.get(e.b).name}` });
+    hit.addEventListener('click', event => { event.stopPropagation(); showEvidence(e); });
+    hit.addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); showEvidence(e); } });
+    byId('branches').append(hit);
   }
   const labels = new Set();
   for (const e of model.edges) {
@@ -42,8 +106,8 @@ function drawFamily() {
     const participants = family ? family.adults.map(id => people.get(id)) : [a, b];
     const x = participants.reduce((sum, p) => sum + p.x + model.box.width / 2, 0) / participants.length;
     const y = ['sibling', 'partner'].includes(e.type) ? Math.min(a.y, b.y) - 44 : a.y + model.box.height + 58;
-    const label = vector('text', { x, y, 'text-anchor': 'middle', class: 'branch-label' });
-    label.textContent = relationTitle(e); byId('branches').append(label);
+    const label = vector('text', { x, y, 'text-anchor': 'middle', class: 'branch-label', 'aria-hidden': true });
+    label.textContent = openConflicts(e).length ? 'Есть противоречие' : e.family ? relationTitle(e) : `${e.type === 'guardian' || e.type === 'adoptive' ? kinds[e.type] + ' · ' : ''}${basis[e.confidence]}`; byId('branches').append(label);
   }
   for (const p of model.persons) {
     const card = node('button', null, 'leaf' + (p.id === model.rootPerson ? ' root' : ''));
@@ -91,7 +155,7 @@ function route(start, finish, hypotheses = false) {
   while (pending.length) {
     const current = pending.shift(); if (current.id === finish) return current;
     for (const e of model.edges) {
-      if (!hypotheses && e.confidence === 'hypothesis') continue;
+      if (!hypotheses && (e.confidence === 'hypothesis' || openConflicts(e).length)) continue;
       const id = e.a === current.id ? e.b : e.b === current.id ? e.a : null;
       if (id && !seen.has(id)) { seen.add(id); pending.push({ id, nodes: [...current.nodes, id], links: [...current.links, e] }); }
     }
@@ -124,6 +188,7 @@ function selection() {
     if (links.some(e => e.confidence === 'hypothesis')) messages.push('В пути есть гипотеза. Родство не доказано.');
     else if (links.some(e => e.confidence !== 'documented')) messages.push('Часть связей пока без документального подтверждения.');
     if (links.some(e => e.type === 'guardian' || e.type === 'adoptive')) messages.push('Показаны также социальные семейные связи.');
+    if (links.some(e => openConflicts(e).length)) messages.push('Есть неразрешённое противоречие — откройте основания связи.');
     note.textContent = messages.join(' ') || 'Выбраны связи с указанным документальным основанием.';
   }
   if (selected) showDetails();
@@ -133,6 +198,8 @@ function showDetails() {
   body.append(node('p', `Основание сведений: ${basis[p.confidence]}.`, 'detail-muted'));
   if (p.publicNote) body.append(node('p', p.publicNote));
   if (p.sourceLabel) body.append(node('p', p.sourceLabel, 'detail-muted'));
+  if (p.evidence?.length) body.append(evidenceButton(p, true));
+  if (openConflicts(p).length) body.append(node('p', 'В сведениях об этом человеке есть неразрешённое противоречие.', 'evidence-warning'));
   if (p.sources.length) {
     body.append(node('h3', 'Источники'));
     for (const source of p.sources) {
@@ -145,12 +212,12 @@ function showDetails() {
   if (state.mode === 'path') {
     const found = route(p.id, state.target);
     if (!found.nodes.length) body.append(node('p', 'Связь ещё не установлена.', 'detail-muted'));
-    found.nodes.forEach((id, i) => { const step = node('div', people.get(id).name, 'path-step'); if (found.links[i]) step.append(node('small', relationTitle(found.links[i]))); body.append(step); });
+    found.nodes.forEach((id, i) => { const step = node('div', people.get(id).name, 'path-step'); if (found.links[i]) { step.append(node('small', relationTitle(found.links[i]))); if (openConflicts(found.links[i]).length) step.append(node('small', 'Есть открытое противоречие', 'conflict-label')); step.append(evidenceButton(found.links[i])); } body.append(step); });
     if (found.links.some(e => e.confidence === 'hypothesis')) body.append(node('p', 'Эта цепочка содержит гипотезу и не является доказательством родства.', 'evidence-warning'));
   } else {
     const nearby = model.edges.filter(e => e.a === p.id || e.b === p.id);
     if (!nearby.length) body.append(node('p', 'Связи с другими людьми пока не установлены.', 'detail-muted'));
-    for (const e of nearby) { const id = e.a === p.id ? e.b : e.a, button = node('button', people.get(id).name, 'related-person'); button.append(node('small', relationTitle(e))); button.onclick = () => { choose(id); center(id); }; body.append(button); }
+    for (const e of nearby) { const id = e.a === p.id ? e.b : e.a, row = node('div', null, 'relation-row'), button = node('button', people.get(id).name, 'related-person'); button.append(node('small', relationTitle(e))); button.onclick = () => { choose(id); center(id); }; row.append(button); if (openConflicts(e).length) row.append(node('p', 'Есть открытое противоречие', 'conflict-label')); row.append(evidenceButton(e)); body.append(row); }
   }
 }
 function choose(id) { state.selected = id; byId('details').hidden = false; selection(); const q = new URLSearchParams({ person: id }); history.replaceState(null, '', '#' + q); }
@@ -166,7 +233,7 @@ async function start() {
   const response = await fetch('tree.json'); if (!response.ok) throw Error('Не удалось загрузить подготовленные данные');
   model = await response.json(); people = new Map(model.persons.map(p => [p.id, p])); state.target = model.rootPerson;
   document.title = model.title + ' · Древо'; byId('tree-title').textContent = model.title;
-  byId('summary').textContent = `Людей: ${model.persons.length} · Семей: ${model.families.length} · история продолжается`;
+  byId('summary').textContent = `Людей: ${model.persons.length} · Связей: ${model.edges.length} · история продолжается`;
   byId('demo-label').textContent = model.demo ? 'ВЫМЫШЛЕННЫЙ ПРИМЕР · БЕЗ СЕМЕЙНЫХ ДАННЫХ' : 'СЕМЕЙНАЯ ИСТОРИЯ';
   byId('demo-explanation').textContent = model.demo ? 'Это вымышленная семья. Имена, даты и связи придуманы для знакомства с приложением.' : 'Публичная сборка содержит показанные имена и даты. Публикуйте её только в согласованном составе.';
   for (const p of model.persons) { const option = node('option', p.name); option.value = p.id; byId('target').append(option); } byId('target').value = state.target;
@@ -178,14 +245,15 @@ async function start() {
   byId('fit').onclick = fit; byId('brand').onclick = e => { e.preventDefault(); fit(); };
   byId('zoom-in').onclick = () => scaleTo(state.zoom * 1.25); byId('zoom-out').onclick = () => scaleTo(state.zoom / 1.25); byId('zoom-level').onclick = () => scaleTo(1);
   byId('close-details').onclick = closeDetails; byId('about').onclick = () => byId('guide').showModal(); byId('close-guide').onclick = () => byId('guide').close();
+  byId('close-evidence').onclick = () => byId('evidence-dialog').close();
   const garden = byId('garden');
-  garden.addEventListener('pointerdown', e => { if (e.button !== 0 || e.target.closest('button')) return; overview = false; drag = { id: e.pointerId, x: e.clientX, y: e.clientY, left: state.left, top: state.top }; garden.setPointerCapture(e.pointerId); garden.classList.add('dragging'); });
+  garden.addEventListener('pointerdown', e => { if (e.button !== 0 || e.target.closest('button,[data-connection]')) return; overview = false; drag = { id: e.pointerId, x: e.clientX, y: e.clientY, left: state.left, top: state.top }; garden.setPointerCapture(e.pointerId); garden.classList.add('dragging'); });
   garden.addEventListener('pointermove', e => { if (!drag || e.pointerId !== drag.id) return; state.left = drag.left + e.clientX - drag.x; state.top = drag.top + e.clientY - drag.y; paintCamera(); });
   const end = () => { drag = null; garden.classList.remove('dragging'); }; garden.addEventListener('pointerup', end); garden.addEventListener('pointercancel', end);
   garden.addEventListener('wheel', e => { e.preventDefault(); overview = false; if (e.ctrlKey || e.metaKey) scaleTo(state.zoom * Math.exp(-e.deltaY * .002), e.clientX, e.clientY); else { state.left -= e.deltaX; state.top -= e.deltaY; paintCamera(); } }, { passive: false });
   byId('map-button').onclick = e => { overview = false; const r = byId('mini-map').getBoundingClientRect(), scale = Math.min(r.width / model.width, r.height / model.height); const x = (e.clientX - r.left - (r.width - model.width * scale) / 2) / scale, y = (e.clientY - r.top - (r.height - model.height * scale) / 2) / scale; state.left = innerWidth / 2 - x * state.zoom; state.top = innerHeight / 2 - y * state.zoom; paintCamera(); };
   window.addEventListener('resize', () => { if (overview) fit(); else { state.left += (innerWidth - previousViewport.width) / 2; state.top += (innerHeight - previousViewport.height) / 2; paintCamera(); } previousViewport = { width: innerWidth, height: innerHeight }; });
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDetails(); if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); byId('search').focus(); } });
+  document.addEventListener('keydown', e => { if (byId('evidence-dialog').open || byId('guide').open) return; if (e.key === 'Escape') closeDetails(); if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); byId('search').focus(); } });
   window.drevo = { getState: () => structuredClone({ ...state, personCount: model.persons.length }), fit, center };
 }
 start().catch(error => { byId('error').hidden = false; byId('error').textContent = 'Не удалось открыть древо: ' + error.message; console.error(error); });

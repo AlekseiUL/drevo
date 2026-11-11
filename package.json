@@ -1,6 +1,6 @@
 {
   "name": "drevo-genealogy",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "private": true,
   "description": "Древо — исследование семейной истории с ИИ, проверяемыми источниками и интерактивным деревом",
   "type": "module",

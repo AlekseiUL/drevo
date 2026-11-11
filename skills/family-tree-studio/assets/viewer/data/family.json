@@ -1,0 +1,139 @@
+{
+  "title": "Семья Листовых",
+  "rootPerson": "mira",
+  "demo": true,
+  "fictional": true,
+  "persons": [
+    {
+      "id": "l1",
+      "name": "Леонид Листов",
+      "birthYear": 1935,
+      "deathYear": 2002,
+      "lifeStatus": "deceased",
+      "confidence": "documented",
+      "place": "Лиственный — вымышленный город",
+      "sourceLabel": "Полностью вымышленный демонстрационный пример"
+    },
+    {
+      "id": "l2",
+      "name": "Надежда Листова",
+      "birthYear": 1938,
+      "deathYear": 2012,
+      "lifeStatus": "deceased",
+      "confidence": "reported",
+      "place": "Лиственный — вымышленный город",
+      "sourceLabel": "Полностью вымышленный демонстрационный пример"
+    },
+    {
+      "id": "t1",
+      "name": "Оскар Тестов",
+      "birthYear": 1936,
+      "lifeStatus": "unknown",
+      "confidence": "hypothesis",
+      "place": "Лиственный — вымышленный город",
+      "sourceLabel": "Полностью вымышленный демонстрационный пример"
+    },
+    {
+      "id": "candidate",
+      "name": "Ян Черновик",
+      "birthYear": 1902,
+      "lifeStatus": "unknown",
+      "confidence": "hypothesis",
+      "publicNote": "Учебный кандидат. Связь с семьёй пока не установлена.",
+      "place": "Лиственный — вымышленный город",
+      "sourceLabel": "Полностью вымышленный демонстрационный пример"
+    },
+    {
+      "id": "gleb",
+      "name": "Глеб Листов",
+      "birthYear": 1961,
+      "lifeStatus": "living",
+      "confidence": "reported",
+      "place": "Лиственный — вымышленный город",
+      "sourceLabel": "Полностью вымышленный демонстрационный пример"
+    },
+    {
+      "id": "vera",
+      "name": "Вера Листова",
+      "birthYear": 1964,
+      "lifeStatus": "living",
+      "confidence": "reported",
+      "aliases": [
+        "Вера Тестова"
+      ],
+      "place": "Лиственный — вымышленный город",
+      "sourceLabel": "Полностью вымышленный демонстрационный пример"
+    },
+    {
+      "id": "zoya",
+      "name": "Зоя Тестова",
+      "birthYear": 1968,
+      "lifeStatus": "living",
+      "confidence": "reported",
+      "place": "Лиственный — вымышленный город",
+      "sourceLabel": "Полностью вымышленный демонстрационный пример"
+    },
+    {
+      "id": "mira",
+      "name": "Мира Листова",
+      "birthYear": 1991,
+      "lifeStatus": "living",
+      "confidence": "reported",
+      "place": "Лиственный — вымышленный город",
+      "sourceLabel": "Полностью вымышленный демонстрационный пример"
+    },
+    {
+      "id": "semen",
+      "name": "Семён Листов",
+      "birthYear": 1994,
+      "lifeStatus": "living",
+      "confidence": "reported",
+      "place": "Лиственный — вымышленный город",
+      "sourceLabel": "Полностью вымышленный демонстрационный пример"
+    }
+  ],
+  "families": [
+    {
+      "id": "roots",
+      "parents": [
+        "l1",
+        "l2"
+      ],
+      "children": [
+        "gleb"
+      ],
+      "confidence": "documented"
+    },
+    {
+      "id": "trace",
+      "parents": [
+        "t1"
+      ],
+      "children": [
+        "vera"
+      ],
+      "confidence": "hypothesis"
+    },
+    {
+      "id": "home",
+      "parents": [
+        "gleb",
+        "vera"
+      ],
+      "children": [
+        "mira",
+        "semen"
+      ],
+      "confidence": "reported"
+    }
+  ],
+  "relationships": [
+    {
+      "id": "sisters",
+      "kind": "sibling",
+      "a": "vera",
+      "b": "zoya",
+      "confidence": "reported"
+    }
+  ]
+}

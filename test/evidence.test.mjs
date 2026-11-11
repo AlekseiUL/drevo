@@ -1,0 +1,11 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {auditEvidence} from '../lib/evidence.mjs';
+const packet = () => ({schemaVersion: 1, sources: [{id: 's1', title: 'Учебная запись', url: '', locator: 'Учебный фонд, оп. 1, д. 2, л. 3', accessedAt: '2026-11-11', form: 'original', independenceGroup: 'record-a'}], claims: [{id: 'c1', personIds: ['p1'], statement: 'Учебное утверждение', status: 'concluded', evidence: [{sourceId: 's1', information: 'primary', type: 'direct', reading: 'Тестовая строка', reasoning: 'Объяснение идентификации'}], researchCoverage: [{resourceId: 'test', scope: 'Учебные листы 1–4', result: 'found', checkedAt: '2026-11-11'}], conflicts: [], conclusion: {text: 'Учебный вывод', reasoning: 'Разбор данных', limitations: 'Только демонстрация', reviewedAt: '2026-11-11'}}]});
+test('complete packet passes structural checks without claiming truth', () => { const r = auditEvidence(packet()); assert.equal(r.errors, 0); assert.match(r.notice, /не установление родства/); });
+test('unresolved conflict prevents concluded status', () => { const p = packet(); p.claims[0].conflicts.push({description: 'Иной год', sourceIds: ['s1'], status: 'open'}); assert.ok(auditEvidence(p).errors > 0); });
+test('conclusion without coverage or cited source fails', () => { const p = packet(); p.claims[0].researchCoverage = []; p.sources = []; assert.ok(auditEvidence(p).errors >= 2); });
+test('not found does not automatically become negative evidence', () => { const p = packet(); p.claims[0].evidence[0].type = 'negative'; assert.ok(auditEvidence(p).issues.some(x => x.message.includes('negativeScope'))); });
+test('copied records are flagged, not counted as independent witnesses', () => { const p = packet(); p.claims[0].evidence.push({...p.claims[0].evidence[0]}); assert.equal(auditEvidence(p).warnings, 1); });
+test('blocked-only coverage cannot support concluded status', () => { const p = packet(); p.claims[0].researchCoverage[0].result = 'blocked'; assert.ok(auditEvidence(p).errors); });
+test('null input returns useful errors instead of throwing', () => { assert.ok(auditEvidence(null).errors); });

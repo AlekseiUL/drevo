@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "title": "Учебное дело: полностью вымышленная семья Озёрных",
+  "goal": "Составить план проверки родителей и места захоронения вымышленного родственника",
+  "rootPersonId": "vera",
+  "regions": ["russia", "vologda"],
+  "period": {"from": 1900, "to": 1985},
+  "people": [
+    {
+      "id": "vera",
+      "name": "Вера Сергеевна Озёрная",
+      "aliases": [],
+      "birth": {"year": 1948, "place": "Вологда"},
+      "death": {"year": null, "place": null},
+      "places": ["Вологда"],
+      "occupations": [],
+      "institutions": [],
+      "status": "family-story",
+      "notes": "Вымышленный персонаж. Данные предназначены только для демонстрации планировщика."
+    },
+    {
+      "id": "sergey",
+      "name": "Сергей Петрович Озёрный",
+      "aliases": ["Сергей Петрович Озерный"],
+      "birth": {"year": 1918, "place": null},
+      "death": {"year": 1981, "place": "Вологодская область"},
+      "places": ["Вологодская область"],
+      "occupations": ["учитель — вымышленная семейная версия"],
+      "institutions": [],
+      "status": "family-story",
+      "notes": "В учебном рассказе назван отцом Веры; связь и все события вымышлены. Никакой реальный поиск не выполнялся."
+    }
+  ],
+  "questions": [
+    {
+      "id": "q-burial",
+      "personId": "sergey",
+      "question": "Какая запись или фотография памятника могла бы уточнить даты и место погребения?",
+      "recordTypes": ["burial", "photographs", "civil"],
+      "priority": "high"
+    },
+    {
+      "id": "q-parents",
+      "personId": "sergey",
+      "question": "Где искать запись о рождении с именами родителей после уточнения населённого пункта?",
+      "recordTypes": ["civil", "church"],
+      "priority": "high"
+    },
+    {
+      "id": "q-work",
+      "personId": "sergey",
+      "question": "Какие источники помогут установить школу и годы работы перед кадровым поиском?",
+      "recordTypes": ["employment", "newspapers", "directories"],
+      "priority": "medium"
+    }
+  ],
+  "constraints": {"freeFirst": true, "allowPaid": false, "browserAvailable": true},
+  "completedSearches": []
+}

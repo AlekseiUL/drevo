@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f7f5ed">
+  <meta name="description" content="Древо — семейные истории, источники и бережно сохранённые связи.">
+  <title>Древо</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%23315c46'/%3E%3Cpath d='M16 27V12M16 19C6 19 5 11 7 6C15 6 18 12 16 19ZM16 14C16 7 22 4 27 5C27 12 22 16 16 14Z' fill='%23dce8bc'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="style.css">
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+  <div class="botanical" aria-hidden="true">
+    <svg viewBox="0 0 1400 900" preserveAspectRatio="xMidYMax slice"><path d="M710 950C690 790 765 680 710 510M710 820C580 820 430 680 380 520M727 740C900 720 1000 570 1030 430"/><path d="M457 645C357 626 316 557 349 498C434 500 477 565 457 645ZM895 654C900 562 965 515 1021 545C1020 627 957 672 895 654Z"/><path d="M706 583C640 546 611 470 660 423C732 448 757 518 706 583Z"/></svg>
+  </div>
+  <header class="masthead">
+    <a class="brand" href="#" id="brand"><span class="sprout" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M16 27V12" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M16 19C6 19 5 11 7 6C15 6 18 12 16 19ZM16 14C16 7 22 4 27 5C27 12 22 16 16 14Z" fill="currentColor"/></svg></span><span>Древо<small>История растёт из связей</small></span></a>
+    <div class="search-area"><label class="sr-only" for="search">Поиск по имени</label><input id="search" type="search" autocomplete="off" placeholder="Найти человека…" aria-controls="matches"><div id="matches" hidden></div></div>
+    <button id="about" class="round-button" aria-label="Как устроено дерево">?</button>
+  </header>
+  <div class="heading"><span id="demo-label" class="eyebrow">СЕМЕЙНАЯ ИСТОРИЯ</span><h1 id="tree-title">Корни. Люди. Истории.</h1><p id="summary">Загружаем семейное дерево…</p></div>
+  <main id="garden" tabindex="0" aria-label="Интерактивное семейное дерево">
+    <div id="world"><svg id="branches" aria-hidden="true"></svg><div id="leaves"></div></div>
+  </main>
+  <div id="selection-note" class="selection-note" role="status" hidden></div>
+  <aside id="details" hidden aria-label="Карточка человека"><button id="close-details" class="round-button" aria-label="Закрыть карточку">×</button><div id="detail-body"></div></aside>
+  <footer class="tools">
+    <div class="zoom-tools"><button id="zoom-out" aria-label="Отдалить">−</button><button id="zoom-level" aria-label="Масштаб сто процентов">100%</button><button id="zoom-in" aria-label="Приблизить">+</button><span></span><button id="fit">Всё древо</button></div>
+    <div class="relation-tools"><label for="mode">Связи</label><select id="mode"><option value="near">Рядом</option><option value="ancestors">Предки</option><option value="descendants">Потомки</option><option value="path">Путь</option></select><select id="target" aria-label="До кого показать путь" hidden></select></div>
+  </footer>
+  <div class="legend"><i></i> По документу <i class="reported"></i> Со слов <i class="hypothesis"></i> Гипотеза</div>
+  <button id="map-button" aria-label="Обзор дерева. Нажмите, чтобы переместиться."><svg id="mini-map" aria-hidden="true"></svg><span>Крона целиком</span></button>
+  <dialog id="guide"><button id="close-guide" class="round-button" aria-label="Закрыть справку">×</button><span class="eyebrow">КАК ЧИТАТЬ ДРЕВО</span><h2>Каждая ветвь — связь.<br>У каждой связи — основание.</h2><p>Нажмите на лист с именем, чтобы открыть историю и источники. Перетащите свободное место для перемещения. Ctrl или ⌘ вместе с колесом меняют масштаб; на телефоне используйте кнопки масштаба.</p><p>Пунктирная охристая ветвь — гипотеза. Подсветка пути не доказывает родство. Опека исключена из линий предков и потомков, усыновление помечено отдельно.</p><p>Фоновые листья и ствол служат украшением. Реальные связи рисуются только между карточками. Отсутствие фото не означает отсутствие сведений; серый цвет не означает смерть.</p><p id="demo-explanation"></p><a href="licenses/Viewer-MIT.txt" target="_blank" rel="noopener noreferrer">Код: MIT</a> · <a href="licenses/Golos-OFL.txt" target="_blank" rel="noopener noreferrer">Golos Text</a> · <a href="licenses/Lucide.txt" target="_blank" rel="noopener noreferrer">Lucide</a></dialog>
+  <div id="error" role="alert" hidden></div>
+  <noscript>Для интерактивного дерева нужен JavaScript.</noscript>
+</body>
+</html>

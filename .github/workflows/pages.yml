@@ -1,0 +1,36 @@
+name: Publish fictional demo
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: pages
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+      - name: Check fictional demo marker
+        run: node --input-type=module -e "import {readFileSync} from 'node:fs'; const data=JSON.parse(readFileSync('skills/family-tree-studio/assets/viewer/data/family.json')); if(data.fictional!==true) throw Error('Only the fictional demo may be published by this workflow');"
+      - run: npm run verify
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: viewer/dist
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4

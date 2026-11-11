@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "description": "Полностью вымышленный пример структуры. Источники ниже не существуют; реальный поиск и профессиональная экспертиза не проводились.",
+  "sources": [
+    {
+      "id": "demo-interview",
+      "title": "Учебная запись вымышленного семейного рассказа",
+      "url": "https://example.invalid/drevo/demo-interview",
+      "accessedAt": "2026-11-11",
+      "locator": "Демонстрационный фрагмент 1; реального документа нет",
+      "form": "authored",
+      "independenceGroup": "fictional-family-account",
+      "notes": "Искусственный пример для проверки формата, не исторический источник."
+    }
+  ],
+  "claims": [
+    {
+      "id": "demo-father",
+      "personIds": ["vera", "sergey"],
+      "statement": "В учебном рассказе Сергей назван отцом Веры; документальная проверка не выполнена.",
+      "status": "family-story",
+      "evidence": [
+        {
+          "sourceId": "demo-interview",
+          "information": "undetermined",
+          "type": "direct",
+          "reading": "Вымышленная реплика: «Сергей был отцом Веры».",
+          "reasoning": "Реплика прямо отвечает на вопрос об отце, но её правдивость и происхождение не проверены. Это демонстрация различия прямого ответа и доказанного родства."
+        }
+      ],
+      "researchCoverage": [],
+      "conflicts": [],
+      "conclusion": null
+    }
+  ]
+}

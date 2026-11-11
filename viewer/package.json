@@ -1,0 +1,11 @@
+{
+  "name": "drevo-fictional-demo",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node scripts/demo.mjs dev",
+    "build": "node scripts/demo.mjs build",
+    "preview": "node scripts/demo.mjs preview"
+  }
+}

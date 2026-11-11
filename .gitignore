@@ -1,0 +1,14 @@
+node_modules/
+.DS_Store
+.env
+.env.*
+!.env.example
+private/
+cases/
+research/evidence/
+viewer/.demo/
+viewer/dist/
+dist/
+*.log
+*.pid
+.playwright-mcp/

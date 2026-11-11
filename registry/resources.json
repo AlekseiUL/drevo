@@ -1,0 +1,1570 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-11-11",
+  "stages": [
+    {
+      "id": "discovery",
+      "order": 1,
+      "title": "Ориентиры и варианты поиска"
+    },
+    {
+      "id": "memorials",
+      "order": 2,
+      "title": "Захоронения и мемориальные фотографии"
+    },
+    {
+      "id": "records",
+      "order": 3,
+      "title": "Открытые документальные коллекции"
+    },
+    {
+      "id": "local-context",
+      "order": 4,
+      "title": "Газеты, библиотеки и местная история"
+    },
+    {
+      "id": "archives",
+      "order": 5,
+      "title": "Архивы и нынешний хранитель документов"
+    },
+    {
+      "id": "paid",
+      "order": 6,
+      "title": "Платные маршруты после проверки покрытия"
+    }
+  ],
+  "resources": [
+    {
+      "id": "memorial-map",
+      "name": "Карта захоронений",
+      "url": "https://memorial-map.ru/",
+      "stage": "memorials",
+      "priority": 1,
+      "cost": "free",
+      "regions": [
+        "vologda"
+      ],
+      "recordTypes": [
+        "burial",
+        "photographs"
+      ],
+      "whenToUse": "Есть умерший родственник и связь с территорией, представленной на карте.",
+      "searchHints": [
+        "Сначала открыть список территорий и кладбищ.",
+        "Искать фамилию, затем имя и диапазон дат; сверить надпись на фото."
+      ],
+      "access": {
+        "browser": true,
+        "account": "none",
+        "automation": "manual-browser"
+      },
+      "limits": [
+        "Не общероссийское полное покрытие.",
+        "Соседство захоронений не доказывает родство.",
+        "Доступ к фото не означает право перепубликовать снимок."
+      ],
+      "verification": {
+        "checkedAt": "2026-11-11",
+        "status": "verified",
+        "evidenceUrls": [
+          "https://memorial-map.ru/"
+        ],
+        "note": "В браузере 11.11.2026 открыты главная страница, форма поиска и выбор территории: Вологодская область, Череповец и муниципальные округа. Проверено покрытие интерфейса, а не полнота захоронений; новый именной поиск в этой проверке не выполнялся."
+      }
+    },
+    {
+      "id": "pomnim-online",
+      "name": "Помним Онлайн",
+      "url": "https://pomnim.online/search",
+      "stage": "memorials",
+      "priority": 1,
+      "cost": "free",
+      "regions": [
+        "russia"
+      ],
+      "recordTypes": [
+        "burial",
+        "photographs"
+      ],
+      "whenToUse": "Нужны даты жизни, место захоронения или фотография памятника.",
+      "searchHints": [
+        "Фамилия обязательна; имя, отчество и годы добавлять постепенно.",
+        "Использовать фильтры кладбища, фото и координат."
+      ],
+      "access": {
+        "browser": true,
+        "account": "none",
+        "automation": "manual-browser"
+      },
+      "limits": [
+        "Встречается CAPTCHA: передать её пользователю.",
+        "Платные услуги поиска и ухода отделены от открытой базы.",
+        "Даты индексной карточки проверять по фотографии."
+      ],
+      "verification": {
+        "checkedAt": "2026-11-11",
+        "status": "verified",
+        "evidenceUrls": [
+          "https://pomnim.online/search"
+        ],
+        "note": "Прочитана входная страница; конкретные именные записи этим аудитом не проверялись."
+      }
+    },
+    {
+      "id": "find-a-grave",
+      "name": "Find a Grave",
+      "url": "https://www.findagrave.com/",
+      "stage": "memorials",
+      "priority": 2,
+      "cost": "free",
+      "regions": [
+        "worldwide"
+      ],
+      "recordTypes": [
+        "burial",
+        "photographs"
+      ],
+      "whenToUse": "Есть зарубежная ветвь или нужное кладбище представлено в базе.",
+      "searchHints": [
+        "Сначала проверить кладбище и страну.",
+        "Проверить варианты транслитерации и сведения memorial page."
+      ],
+      "access": {
+        "browser": true,
+        "account": "optional",
+        "automation": "manual-browser"
+      },
+      "limits": [
+        "Пользовательская запись может ошибаться.",
+        "Не путать с отдельным сайтом findagrave.ru."
+      ],
+      "verification": {
+        "checkedAt": "2026-11-11",
+        "status": "partial",
+        "evidenceUrls": [
+          "https://www.findagrave.com/"
+        ],
+        "note": "Текущий веб-доступ вернул HTTP 403; внутренний поиск не проверен."
+      }
+    },
+    {
+      "id": "billiongraves",
+      "name": "BillionGraves — поиск кладбищ",
+      "url": "https://billiongraves.com/search/cemetery",
+      "stage": "memorials",
+      "priority": 2,
+      "cost": "freemium",
+      "regions": [
+        "worldwide"
+      ],
+      "recordTypes": [
+        "burial",
+        "photographs"
+      ],
+      "whenToUse": "Нужны кладбища с географической привязкой и снимки памятников.",
+      "searchHints": [
+        "Найти место на карте, оценить долю сфотографированных могил.",
+        "Затем искать имя; отдельно проверить ограничения бесплатного просмотра."
+      ],
+      "access": {
+        "browser": true,
+        "account": "optional",
+        "automation": "manual-browser"
+      },
+      "limits": [
+        "Часть функций и подсказок платная.",
+        "Автоматические выводы по соседним могилам не являются доказательством родства."
+      ],
+      "verification": {
+        "checkedAt": "2026-11-11",
+        "status": "verified",
+        "evidenceUrls": [
+          "https://billiongraves.com/search/cemetery"
+        ],
+        "note": "Прочитана входная страница; конкретные именные записи этим аудитом не проверялись."
+      }
+    },
+    {
+      "id": "geneanet",
+      "name": "Geneanet — открытые коллекции",
+      "url": "https://en.geneanet.org/",
+      "stage": "discovery",
+      "priority": 2,
+      "cost": "freemium",
+      "regions": [
+        "worldwide"
+      ],
+      "recordTypes": [
+        "burial",
+        "church",
+        "civil",
+        "photographs",
+        "immigration"
+      ],
+      "whenToUse": "Есть европейская ветвь, старые фотографии или возможное пользовательское дерево.",
+      "searchHints": [
+        "Начать с фамилии и места.",
+        "Из чужого дерева выписать первоисточник и проверить его."
+      ],
+      "access": {
+        "browser": true,
+        "account": "optional",
+        "automation": "manual-browser"
+      },
+      "limits": [
+        "Часть поиска, индексов и библиотеки относится к Premium.",
+        "Пользовательское дерево — подсказка, а не независимое доказательство."
+      ],
+      "verification": {
+        "checkedAt": "2026-11-11",
+        "status": "verified",
+        "evidenceUrls": [
+          "https://en.geneanet.org/"
+        ],
+        "note": "Прочитана входная страница; конкретные именные записи этим аудитом не проверялись."
+      }
+    },
+    {
+      "id": "yandex-archives",
+      "name": "Яндекс Поиск по архивам",
+      "url": "https://yandex.ru/archive",
+      "stage": "records",
+      "priority": 1,
+      "cost": "free",
+      "regions": [
+        "russia"
+      ],
+      "recordTypes": [
+        "church",
+        "census",
+        "newspapers"
+      ],
+      "whenToUse": "Известны место и примерные годы; нужны оцифрованные исторические документы.",
+      "searchHints": [
+        "Проверить каталог коллекций и годы.",
+        "Искать имя, родственников, населённый пункт и дореформенные варианты.",
+        "Проверять распознанное имя по изображению."
+      ],
+      "access": {
+        "browser": true,
+        "account": "required",
+        "automation": "manual-browser"
+      },
+      "limits": [
+        "Просмотр документов требует входа.",
+        "Каталог покрывает лишь часть архивов; OCR может пропускать фамилии."
+      ],
+      "verification": {
+        "checkedAt": "2026-11-11",
+        "status": "verified",
+        "evidenceUrls": [
+          "https://yandex.ru/archive"
+        ],
+        "note": "Прочитана входная страница; конкретные именные записи этим аудитом не проверялись."
+      }
+    },
+    {
+      "id": "familysearch",
+      "name": "FamilySearch Catalog",
+      "url": "https://www.familysearch.org/en/search/catalog",
+      "stage": "records",
+      "priority": 1,
+      "cost": "free",
+      "regions": [
+        "worldwide"
+      ],
+      "recordTypes": [
+        "church",
+        "civil",
+        "census",
+        "immigration",
+        "directories"
+      ],
+      "whenToUse": "Нужно найти коллекцию по месту, приходу и периоду.",
+      "searchHints": [
+        "Использовать Place, Keywords, Film/DGS.",
+        "Сохранить номер коллекции, диапазон лет и условия доступа к Images."
+      ],
+      "access": {
+        "browser": true,
+        "account": "varies",
+        "automation": "manual-browser"
+      },
+      "limits": [
+        "Часть изображений доступна только в центре FamilySearch или библиотеке-партнёре.",
+        "Карточка каталога не гарантирует доступ к сканам.",
+        "Не считать Family Tree API поиском всех исторических документов."
+      ],
+      "verification": {
+        "checkedAt": "2026-11-11",
+        "status": "verified",
+        "evidenceUrls": [
+          "https://www.familysearch.org/en/search/catalog",
+          "https://www.familysearch.org/en/help/helpcenter/article/what-are-the-image-restrictions-in-historical-records"
+        ],
+        "note": "Прочитана входная страница; конкретные именные записи этим аудитом не проверялись."
+      }
+    },
+    {
+      "id": "familio",
+      "name": "Familio — архивные документы и справочники",
+      "url": "https://familio.org/knowledge-base/archive",
+      "stage": "discovery",
+      "priority": 2,
+      "cost": "freemium",
+      "regions": [
+        "russia"
+      ],
+      "recordTypes": [
+        "church",
+        "census",
+        "directories"
+      ],
+      "whenToUse": "Нужно уточнить название места, административное подчинение или архивный шифр.",
+      "searchHints": [
+        "Проверить раздел архивных документов и справочники населённых мест.",
+        "Сравнить прежнее и современное название."
+      ],
+      "access": {
+        "browser": true,
+        "account": "optional",
+        "automation": "manual-browser"
+      },
+      "limits": [
+        "Платные функции профилей отделены от открытых справочников.",
+        "Публичные профили людей проверять по документам."
+      ],
+      "verification": {
+        "checkedAt": "2026-11-11",
+        "status": "verified",
+        "evidenceUrls": [
+          "https://familio.org/knowledge-base/archive",
+          "https://familio.org/knowledge-base/catalogs"
+        ],
+        "note": "Прочитана входная страница; конкретные именные записи этим аудитом не проверялись."
+      }
+    },
+    {
+      "id": "vgd",
+      "name": "Генеалогический форум ВГД",
+      "url": "https://forum.vgd.ru/",
+      "stage": "discovery",
+      "priority": 2,
+      "cost": "free",
+      "regions": [
+        "russia",
+        "worldwide"
+      ],
+      "recordTypes": [
+        "directories",
+        "church",
+        "census",
+        "employment"
+      ],
+      "whenToUse": "Нужны региональная практика, шифр дела или путь к хранителю.",
+      "searchHints": [
+        "Искать сочетание населённого пункта, учреждения и типа документа.",
+        "Из темы извлечь архив, фонд, опись, дело и дату сообщения."
+      ],
+      "access": {
+        "browser": true,
+        "account": "optional",
+        "automation": "manual-browser"
+      },
+      "limits": [
+        "Чтение форума не доказывает найденную родственную связь.",
+        "Публикация вопроса или сообщение участнику требует поручения пользователя."
+      ],
+      "verification": {
+        "checkedAt": "2026-11-11",
+        "status": "verified",
+        "evidenceUrls": [
+          "https://forum.vgd.ru/"
+        ],
+        "note": "Прочитана входная страница; конкретные именные записи этим аудитом не проверялись."
+      }
+    },
+    {
+      "id": "memsearch",
+      "name": "Memsearch",
+      "url": "https://www.memsearch.org/ru",
+      "stage": "records",
+      "priority": 2,
+      "cost": "free",
+      "regions": [
+        "russia",
+        "georgia"
+      ],
+      "recordTypes": [
+        "repression",
+        "employment",
+        "directories"
+      ],
+      "whenToUse": "Есть основание искать репрессии, спецпоселение или конкретное ведомство.",
+      "searchHints": [
+        "Различать базы жертв, сотрудников и воспоминаний.",
+        "Открывать оригинальный источник агрегированной записи."
+      ],
+      "access": {
+        "browser": true,
+        "account": "none",
+        "automation": "manual-browser"
+      },
+      "limits": [
+        "Агрегатор и его исходная база не являются двумя независимыми подтверждениями.",
+        "Отсутствие записи не исключает событие."
+      ],
+      "verification": {
+        "checkedAt": "2026-11-11",
+        "status": "verified",
+        "evidenceUrls": [
+          "https://www.memsearch.org/ru/sources"
+        ],
+        "note": "Прочитана входная страница; конкретные именные записи этим аудитом не проверялись."
+      }
+    },
+    {
+      "id": "openlist",
+      "name": "Открытый список",
+      "url": "https://ru.openlist.wiki/",
+      "stage": "records",
+      "priority": 2,
+      "cost": "free",
+      "regions": [
+        "russia",
+        "georgia"
+      ],
+      "recordTypes": [
+        "repression"
+      ],
+      "whenToUse": "Нужны сведения о политических репрессиях.",
+      "searchHints": [
+        "Сверить ФИО, место, год рождения и источник записи.",
+        "Проверить связанные архивные справки и варианты языка."
+      ],
+      "access": {
+        "browser": true,
+        "account": "none",
+        "automation": "manual-browser"
+      },
+      "limits": [
+        "Это база жертв репрессий, не список сотрудников органов.",
+        "Включать маршрут по биографическому основанию."
+      ],
+      "verification": {
+        "checkedAt": "2026-11-11",
+        "status": "partial",
+        "evidenceUrls": [
+          "https://ru.openlist.wiki/",
+          "https://www.memsearch.org/ru/sources"
+        ],
+        "note": "При текстовом доступе возможны ограничения; назначение подтверждено официальной страницей и списком источников Memsearch."
+      }
+    },
+    {
+      "id": "pamyat-naroda",
+      "name": "Память народа",
+      "url": "https://pamyat-naroda.ru/",
+      "stage": "records",
+      "priority": 1,
+      "cost": "free",
+      "regions": [
+        "russia"
+      ],
+      "recordTypes": [
+        "military"
+      ],
+      "whenToUse": "Возраст и биография позволяют искать участника Великой Отечественной войны.",
+      "searchHints": [
+        "Искать с годом рождения и местом призыва.",
+        "Сверить оригиналы наградных листов, адрес семьи и движение части."
+      ],
+      "access": {
+        "browser": true,
+        "account": "none",
+        "automation": "manual-browser"
+      },
+      "limits": [
+        "Однофамильцев хранить отдельными кандидатами.",
+        "Записи пересекаются с ОБД Мемориал."
+      ],
+      "verification": {
+        "checkedAt": "2026-11-11",
+        "status": "partial",
+        "evidenceUrls": [
+          "https://pamyat-naroda.ru/"
+        ],
+        "note": "Текущий веб-запрос вернул HTTP 401; внутренний поиск этим аудитом не проверен."
+      }
+    },
+    {
+      "id": "obd-memorial",
+      "name": "ОБД Мемориал",
+      "url": "https://obd-memorial.ru/html/",
+      "stage": "records",
+      "priority": 1,
+      "cost": "free",
+      "regions": [
+        "russia"
+      ],
+      "recordTypes": [
+        "military",
+        "burial"
+      ],
+      "whenToUse": "Нужны военные потери, госпитальные записи, военнопленные или захоронения.",
+      "searchHints": [
+        "Использовать расширенный поиск и варианты фамилии.",
+        "Читать все графы документа, особенно адрес родственника."
+      ],
+      "access": {
+        "browser": true,
+        "account": "none",
+        "automation": "manual-browser"
+      },
+      "limits": [
+        "Индекс может содержать ошибку распознавания.",
+        "Место первоначального захоронения может отличаться от позднего."
+      ],
+      "verification": {
+        "checkedAt": "2026-11-11",
+        "status": "verified",
+        "evidenceUrls": [
+          "https://obd-memorial.ru/html/"
+        ],
+        "note": "Прочитана входная страница; конкретные именные записи этим аудитом не проверялись."
+      }
+    },
+    {
+      "id": "gwar",
+      "name": "Памяти героев Великой войны",
+      "url": "https://gwar.mil.ru/",
+      "stage": "records",
+      "priority": 2,
+      "cost": "free",
+      "regions": [
+        "russia"
+      ],
+      "recordTypes": [
+        "military"
+      ],
+      "whenToUse": "Есть человек подходящего возраста и след участия в Первой мировой войне.",
+      "searchHints": [
+        "Проверять губернию, уезд, часть и родственников."
+      ],
+      "access": {
+        "browser": true,
+        "account": "none",
+        "automation": "manual-browser"
+      },
+      "limits": [
+        "Не направлять сюда поколения неподходящего возраста."
+      ],
+      "verification": {
+        "checkedAt": "2026-11-11",
+        "status": "partial",
+        "evidenceUrls": [
+          "https://gwar.mil.ru/"
+        ],
+        "note": "Доступ веб-инструментом ограничен; требуется повторная проверка браузером."
+      }
+    },
+    {
+      "id": "save-memory",
+      "name": "Сохраняя память",
+      "url": "https://save-memory.ru/",
+      "stage": "records",
+      "priority": 2,
+      "cost": "free",
+      "regions": [
+        "vologda"
+      ],
+      "recordTypes": [
+        "military"
+      ],
+      "whenToUse": "Есть военная ветвь из Вологодской области.",
+      "searchHints": [
+        "Проверить доступные картотеки, алфавитные книги и опубликованные сканы.",
+        "Сохранять номер страницы, а не только совпадение в индексе."
+      ],
+      "access": {
+        "browser": true,
+        "account": "none",
+        "automation": "manual-browser"
+      },
+      "limits": [
+        "Локальное покрытие; не все книги и страницы опубликованы.",
+        "Пропуск в оцифровке не равен отсутствию человека."
+      ],
+      "verification": {
+        "checkedAt": "2026-11-11",
+        "status": "verified",
+        "evidenceUrls": [
+          "https://save-memory.ru/"
+        ],
+        "note": "Прочитана входная страница; конкретные именные записи этим аудитом не проверялись."
+      }
+    },
+    {
+      "id": "nlr-newspapers",
+      "name": "РНБ — Газеты в сети и вне её",
+      "url": "https://nlr.ru/res/inv/ukazat55/structure_full.php",
+      "stage": "local-context",
+      "priority": 2,
+      "cost": "free",
+      "regions": [
+        "russia"
+      ],
+      "recordTypes": [
+        "newspapers",
+        "directories"
+      ],
+      "whenToUse": "Известны город, газета, учреждение или примерная дата некролога.",
+      "searchHints": [
+        "Найти точное название и годы издания.",
+        "Перейти к указанной библиотеке или цифровой коллекции."
+      ],
+      "access": {
+        "browser": true,
+        "account": "none",
+        "automation": "manual-browser"
+      },
+      "limits": [
+        "Это указатель мест хранения, а не поиск по всем газетным текстам."
+      ],
+      "verification": {
+        "checkedAt": "2026-11-11",
+        "status": "partial",
+        "evidenceUrls": [
+          "https://nlr.ru/res/inv/ukazat55/structure_full.php"
+        ],
+        "note": "Вход известен из официального указателя; возможен таймаут. Нужные номера проверяются отдельно."
+      }
+    },
+    {
+      "id": "rsl",
+      "name": "РГБ — электронный каталог",
+      "url": "https://search.rsl.ru/",
+      "stage": "local-context",
+      "priority": 2,
+      "cost": "free",
+      "regions": [
+        "russia"
+      ],
+      "recordTypes": [
+        "newspapers",
+        "directories"
+      ],
+      "whenToUse": "Нужны газета, адресная книга, учебное заведение или биографический сборник.",
+      "searchHints": [
+        "Фильтровать по типу издания и доступности.",
+        "Фиксировать год, выпуск и страницы."
+      ],
+      "access": {
+        "browser": true,
+        "account": "none",
+        "automation": "manual-browser"
+      },
+      "limits": [
+        "Некоторые копии доступны только в читальном зале.",
+        "Заказ копии — отдельная услуга."
+      ],
+      "verification": {
+        "checkedAt": "2026-11-11",
+        "status": "verified",
+        "evidenceUrls": [
+          "https://search.rsl.ru/"
+        ],
+        "note": "Прочитана входная страница; конкретные именные записи этим аудитом не проверялись."
+      }
+    },
+    {
+      "id": "neb",
+      "name": "Национальная электронная библиотека",
+      "url": "https://rusneb.ru/",
+      "stage": "local-context",
+      "priority": 2,
+      "cost": "free",
+      "regions": [
+        "russia"
+      ],
+      "recordTypes": [
+        "newspapers",
+        "directories"
+      ],
+      "whenToUse": "Известна книга или газета, которую могли оцифровать библиотеки.",
+      "searchHints": [
+        "Проверить запись, годы и значок доступа.",
+        "Если сканы закрыты, определить библиотеку-хранителя."
+      ],
+      "access": {
+        "browser": true,
+        "account": "none",
+        "automation": "manual-browser"
+      },
+      "limits": [
+        "Наличие карточки не означает домашний доступ к полному тексту."
+      ],
+      "verification": {
+        "checkedAt": "2026-11-11",
+        "status": "partial",
+        "evidenceUrls": [
+          "https://rusneb.ru/"
+        ],
+        "note": "Веб-доступ может возвращать HTTP 403; конкретные сканы не проверялись."
+      }
+    },
+    {
+      "id": "presidential-library",
+      "name": "Президентская библиотека",
+      "url": "https://www.prlib.ru/catalog",
+      "stage": "local-context",
+      "priority": 2,
+      "cost": "free",
+      "regions": [
+        "russia"
+      ],
+      "recordTypes": [
+        "directories",
+        "newspapers",
+        "photographs"
+      ],
+      "whenToUse": "Нужны губернские справочники, история места или учреждения.",
+      "searchHints": [
+        "Искать историческое название губернии, уезда и учреждения.",
+        "Проверить доступ к объекту с домашнего устройства."
+      ],
+      "access": {
+        "browser": true,
+        "account": "none",
+        "automation": "manual-browser"
+      },
+      "limits": [
+        "Часть материалов требует электронного читального зала."
+      ],
+      "verification": {
+        "checkedAt": "2026-11-11",
+        "status": "verified",
+        "evidenceUrls": [
+          "https://www.prlib.ru/catalog"
+        ],
+        "note": "Прочитана входная страница; конкретные именные записи этим аудитом не проверялись."
+      }
+    },
+    {
+      "id": "iverieli",
+      "name": "Iverieli — цифровая библиотека Грузии",
+      "url": "https://dspace.nplg.gov.ge/",
+      "stage": "local-context",
+      "priority": 1,
+      "cost": "free",
+      "regions": [
+        "georgia"
+      ],
+      "recordTypes": [
+        "newspapers",
+        "photographs",
+        "directories"
+      ],
+      "whenToUse": "Есть связь с Грузией, Тифлисом/Тбилиси или местными учреждениями.",
+      "searchHints": [
+        "Проверить русское и грузинское написание, историческое название города.",
+        "Искать в Newspapers, Photo archive, Books и Manuscripts."
+      ],
+      "access": {
+        "browser": true,
+        "account": "none",
+        "automation": "manual-browser"
+      },
+      "limits": [
+        "Часть коллекций доступна только внутри Национальной библиотеки.",
+        "Отсутствующий полный текст не заменять описанием карточки."
+      ],
+      "verification": {
+        "checkedAt": "2026-11-11",
+        "status": "verified",
+        "evidenceUrls": [
+          "https://dspace.nplg.gov.ge/"
+        ],
+        "note": "Прочитана входная страница; конкретные именные записи этим аудитом не проверялись."
+      }
+    },
+    {
+      "id": "russia-in-photo",
+      "name": "История России в фотографиях",
+      "url": "https://russiainphoto.ru/",
+      "stage": "local-context",
+      "priority": 2,
+      "cost": "free",
+      "regions": [
+        "russia"
+      ],
+      "recordTypes": [
+        "photographs"
+      ],
+      "whenToUse": "Нужно восстановить место, предприятие или историческое окружение семьи.",
+      "searchHints": [
+        "Фильтровать место, годы и подписи.",
+        "Сохранять автора и происхождение конкретной фотографии."
+      ],
+      "access": {
+        "browser": true,
+        "account": "none",
+        "automation": "manual-browser"
+      },
+      "limits": [
+        "Контекстная фотография не доказывает присутствие родственника.",
+        "Права на каждое изображение проверяются отдельно."
+      ],
+      "verification": {
+        "checkedAt": "2026-11-11",
+        "status": "verified",
+        "evidenceUrls": [
+          "https://russiainphoto.ru/"
+        ],
+        "note": "Прочитана входная страница; конкретные именные записи этим аудитом не проверялись."
+      }
+    },
+    {
+      "id": "pastvu",
+      "name": "PastVu",
+      "url": "https://pastvu.com/",
+      "stage": "local-context",
+      "priority": 2,
+      "cost": "free",
+      "regions": [
+        "worldwide"
+      ],
+      "recordTypes": [
+        "photographs"
+      ],
+      "whenToUse": "Нужно сопоставить старый адрес или вид местности.",
+      "searchHints": [
+        "Начать с карты и диапазона дат.",
+        "Проверить описание, источник и обсуждение геопривязки."
+      ],
+      "access": {
+        "browser": true,
+        "account": "none",
+        "automation": "manual-browser"
+      },
+      "limits": [
+        "Пользовательская датировка и геопривязка могут быть неточны."
+      ],
+      "verification": {
+        "checkedAt": "2026-11-11",
+        "status": "partial",
+        "evidenceUrls": [
+          "https://pastvu.com/"
+        ],
+        "note": "Текстовый просмотр не извлёк содержимое; нужна работа с картой в браузере."
+      }
+    },
+    {
+      "id": "rzd-museum",
+      "name": "Архив Музея железных дорог России",
+      "url": "https://archive.rzd-museum.ru/",
+      "stage": "local-context",
+      "priority": 2,
+      "cost": "free",
+      "regions": [
+        "russia"
+      ],
+      "recordTypes": [
+        "employment",
+        "photographs",
+        "directories"
+      ],
+      "whenToUse": "Есть подтверждённая железнодорожная профессия или учреждение.",
+      "searchHints": [
+        "Искать станцию, депо, дорогу и рубрику работников.",
+        "Уточнить историческое ведомство перед поиском личного дела."
+      ],
+      "access": {
+        "browser": true,
+        "account": "none",
+        "automation": "manual-browser"
+      },
+      "limits": [
+        "Музейная коллекция не является сплошной кадровой картотекой."
+      ],
+      "verification": {
+        "checkedAt": "2026-11-11",
+        "status": "verified",
+        "evidenceUrls": [
+          "https://archive.rzd-museum.ru/"
+        ],
+        "note": "Прочитана входная страница; конкретные именные записи этим аудитом не проверялись."
+      }
+    },
+    {
+      "id": "wayback",
+      "name": "Internet Archive Wayback Machine",
+      "url": "https://web.archive.org/",
+      "stage": "local-context",
+      "priority": 2,
+      "cost": "free",
+      "regions": [
+        "worldwide"
+      ],
+      "recordTypes": [
+        "newspapers",
+        "directories",
+        "photographs"
+      ],
+      "whenToUse": "Есть точный адрес исчезнувшей страницы, подшивки или каталога.",
+      "searchHints": [
+        "Проверить снимки вокруг нужной даты.",
+        "Отдельно проверить сохранность PDF, изображений и вложений."
+      ],
+      "access": {
+        "browser": true,
+        "account": "none",
+        "automation": "manual-browser"
+      },
+      "limits": [
+        "Сохранённая страница не гарантирует сохранённых файлов.",
+        "Старая страница не подтверждает действующий тариф или контакт."
+      ],
+      "verification": {
+        "checkedAt": "2026-11-11",
+        "status": "verified",
+        "evidenceUrls": [
+          "https://web.archive.org/"
+        ],
+        "note": "Прочитана входная страница; конкретные именные записи этим аудитом не проверялись."
+      }
+    },
+    {
+      "id": "dvinaland",
+      "name": "ЕАИС архивов Архангельской области",
+      "url": "https://archives.dvinaland.ru/archive1/funds",
+      "stage": "archives",
+      "priority": 1,
+      "cost": "free",
+      "regions": [
+        "arkhangelsk"
+      ],
+      "recordTypes": [
+        "employment",
+        "civil",
+        "census",
+        "church",
+        "burial",
+        "photographs"
+      ],
+      "whenToUse": "Установлены регион, учреждение и тип записи.",
+      "searchHints": [
+        "Выбрать нужный архив, затем фонд и опись.",
+        "Отделять основной архив, личный состав и муниципальные архивы.",
+        "Проверить значок наличия образов до покупки просмотра."
+      ],
+      "access": {
+        "browser": true,
+        "account": "none",
+        "automation": "manual-browser"
+      },
+      "limits": [
+        "Каталог бесплатен; просмотр отдельных образов и услуги могут оплачиваться отдельно.",
+        "Фонд учреждения не гарантирует личное дело конкретного работника."
+      ],
+      "verification": {
+        "checkedAt": "2026-11-11",
+        "status": "partial",
+        "evidenceUrls": [
+          "https://archives.dvinaland.ru/archive1/funds"
+        ],
+        "note": "В текущем веб-доступе HTTP 403; ранее каталог использовался в исходном исследовании. Нужен обычный браузер."
+      }
+    },
+    {
+      "id": "vologda-archives",
+      "name": "Архивный портал Вологодской области",
+      "url": "https://gosarchive.gov35.ru/",
+      "stage": "archives",
+      "priority": 1,
+      "cost": "free",
+      "regions": [
+        "vologda"
+      ],
+      "recordTypes": [
+        "employment",
+        "civil",
+        "census",
+        "church",
+        "burial"
+      ],
+      "whenToUse": "Известен населённый пункт или учреждение в Вологодской области.",
+      "searchHints": [
+        "Проверить конкретного хранителя и состав фонда.",
+        "Различать государственный и муниципальный архив."
+      ],
+      "access": {
+        "browser": true,
+        "account": "varies",
+        "automation": "manual-browser"
+      },
+      "limits": [
+        "Аккаунт не означает платную подписку.",
+        "Платность просмотра не подтверждена; заказ работы архивиста — отдельная услуга."
+      ],
+      "verification": {
+        "checkedAt": "2026-11-11",
+        "status": "partial",
+        "evidenceUrls": [
+          "https://gosarchive.gov35.ru/"
+        ],
+        "note": "Текущий вход вернул HTTP 502; авторизованный просмотр не проверен."
+      }
+    },
+    {
+      "id": "georgia-fonds",
+      "name": "Национальный архив Грузии — фонды и описи",
+      "url": "https://vpn.archive.gov.ge/en/fondebis-da-anatserebis-katalogi-1",
+      "stage": "archives",
+      "priority": 1,
+      "cost": "free",
+      "regions": [
+        "georgia"
+      ],
+      "recordTypes": [
+        "employment",
+        "civil",
+        "census",
+        "directories"
+      ],
+      "whenToUse": "Установлены учреждение, место и годы в Грузии.",
+      "searchHints": [
+        "Искать историческое учреждение и его правопреемника.",
+        "Зафиксировать фонд, опись, крайние даты и хранителя."
+      ],
+      "access": {
+        "browser": true,
+        "account": "none",
+        "automation": "manual-browser"
+      },
+      "limits": [
+        "Описание фонда не равно доступным сканам.",
+        "Не все советские персональные дела доступны онлайн."
+      ],
+      "verification": {
+        "checkedAt": "2026-11-11",
+        "status": "verified",
+        "evidenceUrls": [
+          "https://vpn.archive.gov.ge/en/fondebis-da-anatserebis-katalogi-1"
+        ],
+        "note": "Прочитана входная страница; конкретные именные записи этим аудитом не проверялись."
+      }
+    },
+    {
+      "id": "georgia-church",
+      "name": "Национальный архив Грузии — каталог метрических книг",
+      "url": "https://vpn.archive.gov.ge/en/metrikuli-tsignebis-sadziebeli-1",
+      "stage": "archives",
+      "priority": 2,
+      "cost": "free",
+      "regions": [
+        "georgia"
+      ],
+      "recordTypes": [
+        "church"
+      ],
+      "whenToUse": "Нужны рождения, браки и смерти в церковных книгах.",
+      "searchHints": [
+        "Установить населённый пункт, приход, конфессию и годы по свидетельствам.",
+        "Проверить охват серии до именного поиска."
+      ],
+      "access": {
+        "browser": true,
+        "account": "none",
+        "automation": "manual-browser"
+      },
+      "limits": [
+        "Конфессию нельзя вывести только из фамилии или места.",
+        "Поиск наличия книг не обещает открытых образов."
+      ],
+      "verification": {
+        "checkedAt": "2026-11-11",
+        "status": "verified",
+        "evidenceUrls": [
+          "https://vpn.archive.gov.ge/en/metrikuli-tsignebis-sadziebeli-1"
+        ],
+        "note": "Прочитана входная страница; конкретные именные записи этим аудитом не проверялись."
+      }
+    },
+    {
+      "id": "georgia-households",
+      "name": "Национальный архив Грузии — похозяйственные книги",
+      "url": "https://vpn.archive.gov.ge/en/sakomlo-chanatserebis-katalogi-1",
+      "stage": "archives",
+      "priority": 2,
+      "cost": "free",
+      "regions": [
+        "georgia"
+      ],
+      "recordTypes": [
+        "census"
+      ],
+      "whenToUse": "Известны село и годы проживания семьи.",
+      "searchHints": [
+        "Искать сельский населённый пункт и период.",
+        "Проверять всех членов хозяйства и пометы переезда."
+      ],
+      "access": {
+        "browser": true,
+        "account": "none",
+        "automation": "manual-browser"
+      },
+      "limits": [
+        "Запись домохозяйства не доказывает биологическое родство каждого жильца."
+      ],
+      "verification": {
+        "checkedAt": null,
+        "status": "not-checked",
+        "evidenceUrls": [
+          "https://vpn.archive.gov.ge/en/sakomlo-chanatserebis-katalogi-1"
+        ],
+        "note": "Ресурс включён по ранее проверенному официальному каталогу; в этом аудите отдельно не открыт."
+      }
+    },
+    {
+      "id": "cfc",
+      "name": "Центральный фондовый каталог",
+      "url": "https://cfc.rusarchives.ru/CFC-search/",
+      "stage": "archives",
+      "priority": 2,
+      "cost": "free",
+      "regions": [
+        "russia"
+      ],
+      "recordTypes": [
+        "directories",
+        "employment",
+        "civil",
+        "census",
+        "church"
+      ],
+      "whenToUse": "Неизвестен нынешний хранитель нужного учреждения или фонда.",
+      "searchHints": [
+        "Искать фондообразователя, отрасль и прежнее название.",
+        "Перепроверить наличие дела на сайте найденного архива."
+      ],
+      "access": {
+        "browser": true,
+        "account": "none",
+        "automation": "manual-browser"
+      },
+      "limits": [
+        "Это каталог фондов, не именная база всех граждан."
+      ],
+      "verification": {
+        "checkedAt": "2026-11-11",
+        "status": "partial",
+        "evidenceUrls": [
+          "https://cfc.rusarchives.ru/CFC-search/"
+        ],
+        "note": "Текущий веб-запрос завершился таймаутом."
+      }
+    },
+    {
+      "id": "uiad-catalog",
+      "name": "ГИС УИАД — справочный поиск",
+      "url": "https://online.archives.ru/",
+      "stage": "archives",
+      "priority": 2,
+      "cost": "free",
+      "regions": [
+        "russia"
+      ],
+      "recordTypes": [
+        "directories",
+        "church",
+        "census",
+        "employment"
+      ],
+      "whenToUse": "Нужно проверить описи федеральных архивов и наличие конкретного дела.",
+      "searchHints": [
+        "Сначала найти архив, фонд, опись и дело.",
+        "Установить наличие цифровых образов до платного маршрута."
+      ],
+      "access": {
+        "browser": true,
+        "account": "none",
+        "automation": "manual-browser"
+      },
+      "limits": [
+        "Количество подключённых каталогов не равно полной оцифровке архивов."
+      ],
+      "verification": {
+        "checkedAt": "2026-11-11",
+        "status": "partial",
+        "evidenceUrls": [
+          "https://online.archives.ru/",
+          "https://statearchive.ru/1979"
+        ],
+        "note": "Портал дал таймаут; бесплатный справочный поиск и отдельная платность просмотра описаны ГАРФ."
+      }
+    },
+    {
+      "id": "goskatalog",
+      "name": "Госкаталог Музейного фонда",
+      "url": "https://goskatalog.ru/portal/",
+      "stage": "local-context",
+      "priority": 2,
+      "cost": "free",
+      "regions": [
+        "russia"
+      ],
+      "recordTypes": [
+        "photographs",
+        "employment",
+        "directories"
+      ],
+      "whenToUse": "Нужны музейные фотографии, подписи или предметы, связанные с человеком и учреждением.",
+      "searchHints": [
+        "Искать имя, учреждение, место и музей.",
+        "Сохранять инвентарный номер и владельца предмета."
+      ],
+      "access": {
+        "browser": true,
+        "account": "none",
+        "automation": "manual-browser"
+      },
+      "limits": [
+        "Описание предмета не гарантирует установления изображённого человека.",
+        "Права на воспроизведение проверять у музея."
+      ],
+      "verification": {
+        "checkedAt": "2026-11-11",
+        "status": "partial",
+        "evidenceUrls": [
+          "https://goskatalog.ru/portal/"
+        ],
+        "note": "Текущий веб-запрос завершился таймаутом."
+      }
+    },
+    {
+      "id": "uiad-viewing",
+      "name": "ГИС УИАД — просмотр цифровых копий",
+      "url": "https://online.archives.ru/",
+      "stage": "paid",
+      "priority": 1,
+      "cost": "paid",
+      "regions": [
+        "russia"
+      ],
+      "recordTypes": [
+        "church",
+        "census",
+        "employment",
+        "civil"
+      ],
+      "whenToUse": "Найдено конкретное подходящее дело и подтверждено наличие его образов.",
+      "searchHints": [
+        "Проверить действующий тариф, срок сеанса и доступ именно к выбранному делу.",
+        "Подготовить список листов до начала оплаченного времени."
+      ],
+      "access": {
+        "browser": true,
+        "account": "required",
+        "automation": "manual-browser"
+      },
+      "limits": [
+        "Оплата не добавляет отсутствующие сканы.",
+        "Доступ одной системы не открывает региональные архивы."
+      ],
+      "verification": {
+        "checkedAt": "2026-11-11",
+        "status": "partial",
+        "evidenceUrls": [
+          "https://statearchive.ru/1979",
+          "https://online.archives.ru/"
+        ],
+        "note": "Официальное объявление ГАРФ подтверждает платный просмотр; портал сейчас недоступен веб-инструменту, текущая цена не подтверждена."
+      }
+    },
+    {
+      "id": "gaao-paid",
+      "name": "ГААО — удалённый просмотр, поиск и копии",
+      "url": "https://gaao29.ru/uslugi/preyskurant.php",
+      "stage": "paid",
+      "priority": 2,
+      "cost": "paid",
+      "regions": [
+        "arkhangelsk"
+      ],
+      "recordTypes": [
+        "church",
+        "civil",
+        "census",
+        "employment"
+      ],
+      "whenToUse": "Подтверждены хранитель, шифр и нужный вид платной работы.",
+      "searchHints": [
+        "Сопоставить прейскурант с конкретной услугой: просмотр, копия или поиск.",
+        "Получить объём и расчёт по конкретным листам."
+      ],
+      "access": {
+        "browser": true,
+        "account": "varies",
+        "automation": "manual-browser"
+      },
+      "limits": [
+        "Цена за образ не равна цене целого дела.",
+        "Не покупать просмотр ради дела, у которого не обнаружены образы."
+      ],
+      "verification": {
+        "checkedAt": "2026-11-11",
+        "status": "verified",
+        "evidenceUrls": [
+          "https://gaao29.ru/uslugi/preyskurant.php"
+        ],
+        "note": "Официальная страница прейскуранта открыта; актуальная сумма должна быть проверена по действующему приложению перед заказом."
+      }
+    },
+    {
+      "id": "gavo-paid",
+      "name": "ГАВО — заказ архивного поиска и копий",
+      "url": "https://old.arhiv-vologda.ru/paid-services/preyskurant",
+      "stage": "paid",
+      "priority": 2,
+      "cost": "paid",
+      "regions": [
+        "vologda"
+      ],
+      "recordTypes": [
+        "church",
+        "civil",
+        "census",
+        "employment"
+      ],
+      "whenToUse": "Нужный документ хранится именно в ГАВО и самостоятельный путь исчерпан.",
+      "searchHints": [
+        "Запросить точный объём и единицу расчёта.",
+        "Проверить дату вступления тарифа в силу."
+      ],
+      "access": {
+        "browser": true,
+        "account": "varies",
+        "automation": "manual-browser"
+      },
+      "limits": [
+        "Тариф ГАВО не распространяется на муниципальные архивы.",
+        "Страница результата, справка, факт и копия — разные единицы оплаты."
+      ],
+      "verification": {
+        "checkedAt": "2026-11-11",
+        "status": "partial",
+        "evidenceUrls": [
+          "https://old.arhiv-vologda.ru/paid-services/preyskurant"
+        ],
+        "note": "В текущем открытии таймаут. Ранее в исходном исследовании прочитан тариф с 01.04.2026; суммы не перенесены без повторной проверки."
+      }
+    },
+    {
+      "id": "georgia-paid",
+      "name": "Национальный архив Грузии — дистанционные услуги",
+      "url": "https://vpn.archive.gov.ge/en/distantsiuri-momsakhureba-1",
+      "stage": "paid",
+      "priority": 2,
+      "cost": "paid",
+      "regions": [
+        "georgia"
+      ],
+      "recordTypes": [
+        "civil",
+        "church",
+        "census",
+        "employment"
+      ],
+      "whenToUse": "Установлен нужный документ или точный вопрос хранителю.",
+      "searchHints": [
+        "Уточнить услугу, срок, цену и документы заявителя.",
+        "Попросить расчёт ограниченного запроса."
+      ],
+      "access": {
+        "browser": true,
+        "account": "varies",
+        "automation": "manual-browser"
+      },
+      "limits": [
+        "Удалённая услуга не означает открытый доступ ко всем актовым записям.",
+        "Условия зависят от документа и права доступа."
+      ],
+      "verification": {
+        "checkedAt": "2026-11-11",
+        "status": "verified",
+        "evidenceUrls": [
+          "https://vpn.archive.gov.ge/en/distantsiuri-momsakhureba-1"
+        ],
+        "note": "Официальная страница дистанционных услуг открыта; конкретный тариф и доступ не проверялись."
+      }
+    },
+    {
+      "id": "geneanet-premium",
+      "name": "Geneanet Premium",
+      "url": "https://en.geneanet.org/premium/",
+      "stage": "paid",
+      "priority": 2,
+      "cost": "paid",
+      "regions": [
+        "worldwide"
+      ],
+      "recordTypes": [
+        "civil",
+        "church",
+        "census",
+        "newspapers",
+        "directories"
+      ],
+      "whenToUse": "Нужная коллекция или расширенный поиск действительно включены в Premium.",
+      "searchHints": [
+        "Проверить название коллекции, покрытие места и годов.",
+        "Сравнить с её бесплатным первоисточником."
+      ],
+      "access": {
+        "browser": true,
+        "account": "required",
+        "automation": "manual-browser"
+      },
+      "limits": [
+        "Подписка не подтверждает истинность пользовательских деревьев.",
+        "Проверить валюту, период списания и продление."
+      ],
+      "verification": {
+        "checkedAt": "2026-11-11",
+        "status": "verified",
+        "evidenceUrls": [
+          "https://en.geneanet.org/premium/"
+        ],
+        "note": "Прочитана входная страница; конкретные именные записи этим аудитом не проверялись."
+      }
+    },
+    {
+      "id": "myheritage-paid",
+      "name": "MyHeritage — исторические записи",
+      "url": "https://www.myheritage.com/research",
+      "stage": "paid",
+      "priority": 2,
+      "cost": "paid",
+      "regions": [
+        "worldwide"
+      ],
+      "recordTypes": [
+        "civil",
+        "census",
+        "church",
+        "immigration",
+        "newspapers",
+        "photographs"
+      ],
+      "whenToUse": "Есть конкретная подходящая коллекция или убедительный кандидат в индексе.",
+      "searchHints": [
+        "До подписки проверить каталог, территорию и годы.",
+        "Различать доступ к документам и тариф построения дерева."
+      ],
+      "access": {
+        "browser": true,
+        "account": "required",
+        "automation": "manual-browser"
+      },
+      "limits": [
+        "Часть коллекций бесплатна; проверить это до оплаты.",
+        "Индексные совпадения и автоматические объединения требуют сверки с оригиналом.",
+        "Цены зависят от предложения и региона."
+      ],
+      "verification": {
+        "checkedAt": "2026-11-11",
+        "status": "verified",
+        "evidenceUrls": [
+          "https://www.myheritage.com/research",
+          "https://www.myheritage.com/pricing"
+        ],
+        "note": "Прочитана входная страница; конкретные именные записи этим аудитом не проверялись."
+      }
+    },
+    {
+      "id": "ancestry-paid",
+      "name": "Ancestry — подписка на коллекции",
+      "url": "https://www.ancestry.com/cs/offers/subscribe",
+      "stage": "paid",
+      "priority": 2,
+      "cost": "paid",
+      "regions": [
+        "worldwide"
+      ],
+      "recordTypes": [
+        "civil",
+        "census",
+        "immigration",
+        "military",
+        "newspapers"
+      ],
+      "whenToUse": "Подтверждена подходящая зарубежная коллекция и нужный уровень подписки.",
+      "searchHints": [
+        "Проверить коллекцию и географический пакет до оплаты.",
+        "Уточнить доступ через библиотеку или бесплатную коллекцию."
+      ],
+      "access": {
+        "browser": true,
+        "account": "required",
+        "automation": "manual-browser"
+      },
+      "limits": [
+        "Текущие условия и цена требуют проверки в обычном браузере.",
+        "Автоматические hints не заменяют прочтение записи."
+      ],
+      "verification": {
+        "checkedAt": "2026-11-11",
+        "status": "partial",
+        "evidenceUrls": [
+          "https://www.ancestry.com/cs/offers/subscribe"
+        ],
+        "note": "Официальная страница подписки вернула HTTP 403; покупка и авторизованный доступ не проверялись."
+      }
+    },
+    {
+      "id": "findmypast-paid",
+      "name": "Findmypast",
+      "url": "https://www.findmypast.com/",
+      "stage": "paid",
+      "priority": 2,
+      "cost": "paid",
+      "regions": [
+        "worldwide"
+      ],
+      "recordTypes": [
+        "civil",
+        "census",
+        "church",
+        "immigration",
+        "newspapers"
+      ],
+      "whenToUse": "Есть британская или ирландская ветвь и нужная коллекция.",
+      "searchHints": [
+        "Проверить годы, территорию и включение газет в тариф.",
+        "Сначала поискать бесплатные записи и доступ через библиотеку."
+      ],
+      "access": {
+        "browser": true,
+        "account": "required",
+        "automation": "manual-browser"
+      },
+      "limits": [
+        "Региональные тарифы и условия меняются.",
+        "Подписка не гарантирует наличие конкретного человека."
+      ],
+      "verification": {
+        "checkedAt": "2026-11-11",
+        "status": "partial",
+        "evidenceUrls": [
+          "https://www.findmypast.com/"
+        ],
+        "note": "Официальная страница вернула HTTP 403; текущий тариф не проверен."
+      }
+    }
+  ],
+  "regionParents": {
+    "vologda": "russia",
+    "arkhangelsk": "russia"
+  }
+}

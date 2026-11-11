@@ -7,7 +7,7 @@ import { validateRegistry, validateCase, buildPlan, formatPlan } from '../lib/pl
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const readJSON = async file => JSON.parse(await readFile(file, 'utf8'));
 const registry = async () => validateRegistry(await readJSON(path.join(root, 'registry/resources.json')));
-const usage = `Древо 0.2.0 — инструменты генеалогического исследования
+const usage = `Древо 0.3.0 — инструменты генеалогического исследования
 
   node bin/drevo.mjs init <новая-папка-вне-репозитория>
   node bin/drevo.mjs plan <case.json> [--all] [--limit 3] [--paid] [--json]
@@ -15,6 +15,7 @@ const usage = `Древо 0.2.0 — инструменты генеалогич�
   node bin/drevo.mjs tree-preview <папка-дела> [--include-hypotheses] [--public] [--json]
   node bin/drevo.mjs tree-apply <папка-дела> [--json]
   node bin/drevo.mjs tree-undo <папка-дела> [--json]
+  node bin/drevo.mjs dossier <папка-дела> [--port 4174] [--include-hypotheses]
   node bin/drevo.mjs sources [--paid] [--json]
   node bin/drevo.mjs check
 
@@ -52,7 +53,7 @@ async function initializeCase(target) {
 try {
   const [command = 'help', ...args] = process.argv.slice(2);
   const flagsByCommand = {
-    sources:['--json','--paid'],plan:['--json','--all','--paid','--limit'],audit:['--json','--case'],
+    dossier:['--port','--include-hypotheses'],sources:['--json','--paid'],plan:['--json','--all','--paid','--limit'],audit:['--json','--case'],
     'tree-preview':['--json','--public','--include-hypotheses'],'tree-apply':['--json'],'tree-undo':['--json'],
   };
   const values = new Map(), positional = [];
@@ -60,12 +61,12 @@ try {
     const arg = args[i];
     if (!arg.startsWith('--')) { positional.push(arg); continue; }
     if (!(flagsByCommand[command] || []).includes(arg) || values.has(arg)) throw Error(`Неизвестный или повторный параметр: ${arg}`);
-    if (['--case','--limit'].includes(arg)) {
+    if (['--case','--limit','--port'].includes(arg)) {
       if (!args[i+1] || args[i+1].startsWith('--')) throw Error(`Нужно значение ${arg}`);
       values.set(arg,args[++i]);
     } else values.set(arg,true);
   }
-  const expected = ['init','plan','audit','tree-preview','tree-apply','tree-undo'].includes(command) ? 1 : 0;
+  const expected = ['init','plan','audit','tree-preview','tree-apply','tree-undo','dossier'].includes(command) ? 1 : 0;
   if (positional.length !== expected) throw Error(`Команда ${command} ожидает ${expected} аргумент(а).\n${usage}`);
   const json = values.has('--json');
   if (command === 'help' || command === '--help' || command === '-h') console.log(usage);
@@ -84,6 +85,11 @@ try {
     const {previewTree,applyTree,undoTree,formatPreview} = await import('../lib/tree-store.mjs');
     const result = command === 'tree-preview' ? await previewTree(positional[0],{public:values.has('--public'),includeHypotheses:values.has('--include-hypotheses')}) : command === 'tree-apply' ? await applyTree(positional[0]) : await undoTree(positional[0]);
     console.log(json ? JSON.stringify(result,null,2) : command === 'tree-preview' ? formatPreview(result) : `${result.notice || 'Версия дерева применена.'}\n${result.viewerDir ? `Viewer: ${result.viewerDir}\nЗапуск из его папки: npm run dev` : 'Текущее дерево отсутствует; сохранённые версии доступны в .drevo/revisions/.'}`);
+  } else if (command === 'dossier') {
+    const {startDossierServer} = await import('../lib/dossier-server.mjs');
+    const app = await startDossierServer(positional[0],{port:values.has('--port') ? Number(values.get('--port')) : 4174,includeHypotheses:values.has('--include-hypotheses')});
+    console.log(`Локальное семейное дело: ${app.url}\nОписание и прикреплённые материалы сохраняются в папке дела. Для остановки: Ctrl+C.`);
+    for (const signal of ['SIGINT','SIGTERM']) process.once(signal,()=>{app.server.close();app.server.closeAllConnections();});
   } else if (command === 'sources') {
     const r = await registry();
     const entries = args.includes('--paid') ? r.resources.filter(x => x.cost === 'paid') : r.resources;

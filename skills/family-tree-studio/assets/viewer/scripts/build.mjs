@@ -2,6 +2,7 @@ import { readFile, mkdir, copyFile, realpath, stat, mkdtemp, rm, rename } from '
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { publicFamily, layoutFamily, contained } from './model.mjs';
+import { verifyMaterialBytes } from './material-policy.mjs';
 
 export const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 export async function build() {
@@ -14,12 +15,20 @@ export async function build() {
     for (const file of ['fonts/golos-0.ttf', 'fonts/golos-1.ttf', 'fonts/golos-2.ttf', 'icons/map-pin.svg']) await copy(path.join(projectRoot, 'public/assets', file), 'assets/' + file);
     for (const [source, target] of [['public/assets/fonts/OFL.txt', 'licenses/Golos-OFL.txt'], ['public/assets/icons/LICENSE-lucide.txt', 'licenses/Lucide.txt'], ['LICENSE', 'licenses/Viewer-MIT.txt']]) await copy(path.join(projectRoot, source), target);
     const publicRoot = await realpath(path.join(projectRoot, 'public'));
-    for (const asset of new Set(model.persons.filter(p => p.photo).map(p => p.photo.path))) {
-      const source = await realpath(path.join(publicRoot, asset));
-      if (!contained(publicRoot, source) || !(await stat(source)).isFile()) throw Error('Фото указывает за пределы public/');
-      await copy(source, asset);
+    const assets = new Map();
+    for (const person of model.persons) {
+      if (person.photo) assets.set(person.photo.path, [...(assets.get(person.photo.path) || []), {}]);
+      for (const material of person.dossier.materials) if (material.path) assets.set(material.path, [...(assets.get(material.path) || []), material]);
     }
     const { writeFile } = await import('node:fs/promises');
+    for (const [asset, references] of assets) {
+      const source = await realpath(path.join(publicRoot, asset));
+      if (!contained(publicRoot, source) || !(await stat(source)).isFile()) throw Error('Материал указывает за пределы public/');
+      const bytes = await readFile(source);
+      for (const reference of references) verifyMaterialBytes(bytes, asset, reference);
+      await mkdir(path.dirname(path.join(staging, asset)), { recursive: true });
+      await writeFile(path.join(staging, asset), bytes);
+    }
     await writeFile(path.join(staging, 'tree.json'), JSON.stringify(model));
     await rm(path.join(projectRoot, 'dist'), { recursive: true, force: true });
     await rename(staging, path.join(projectRoot, 'dist'));

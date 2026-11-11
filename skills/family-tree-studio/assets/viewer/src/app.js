@@ -2,7 +2,7 @@ const byId = id => document.getElementById(id);
 const svgNS = 'http://www.w3.org/2000/svg';
 const basis = { documented: 'по документу', reported: 'со слов семьи', hypothesis: 'гипотеза', unknown: 'основание не указано' };
 const kinds = { 'parent-child': 'Родительская связь', adoptive: 'Усыновление / удочерение', guardian: 'Опека', partner: 'Партнёры', sibling: 'Брат / сестра' };
-const state = { zoom: 1, left: 0, top: 0, selected: null, mode: 'near', target: null, people: [], edges: [], path: [] };
+const state = { zoom: 1, left: 0, top: 0, selected: null, mode: 'near', target: null, people: [], edges: [], path: [], dossierTab: 'overview' };
 let model, people, cards = new Map(), lines = new Map(), drag = null, overview = true;
 let previousViewport = { width: innerWidth, height: innerHeight };
 const folded = value => value.toLowerCase().normalize('NFKC').replace(/ё/g, 'е');
@@ -147,7 +147,7 @@ function fit() {
 function center(id, zoom = Math.max(state.zoom, .8)) {
   overview = false;
   const p = people.get(id); state.zoom = zoom;
-  const x = state.selected && innerWidth > 800 ? (innerWidth - 330) / 2 : innerWidth / 2;
+  const x = state.selected && innerWidth > 800 ? (innerWidth - 470) / 2 : innerWidth / 2;
   state.left = x - (p.x + model.box.width / 2) * zoom; state.top = innerHeight * .52 - (p.y + model.box.height / 2) * zoom; paintCamera();
 }
 function route(start, finish, hypotheses = false) {
@@ -193,21 +193,215 @@ function selection() {
   }
   if (selected) showDetails();
 }
+const materialKinds = { photo: 'Фотография', document: 'Документ', audio: 'Аудиозапись', video: 'Видео', other: 'Материал' };
+const dossierTabs = ['overview', 'materials', 'findings'];
+const dossierNames = { overview: 'Обзор', materials: 'Материалы', findings: 'Находки' };
+const emptyDossier = () => ({ biography: '', activity: '', materials: [], findings: [] });
+let session = null, editorState = null, materialFilter = 'all';
+const fileLimit = 20 * 1024 * 1024;
+function safeWebLink(value) { try { const url = new URL(value); return ['http:', 'https:'].includes(url.protocol) && !url.username && !url.password ? url.href : null; } catch { return null; } }
+function materialPath(value) { return typeof value === 'string' && /^assets\/materials\/[a-zA-Z0-9_-]+\.[a-zA-Z0-9]+$/.test(value) ? value : null; }
+function externalLink(label, value) { const url = safeWebLink(value); if (!url) return null; const a = node('a', label); a.href = url; a.target = '_blank'; a.rel = 'noopener noreferrer'; return a; }
+function bytes(size) { return !Number.isFinite(size) ? '' : size < 1024 ? `${size} Б` : size < 1024 * 1024 ? `${Math.round(size / 1024)} КБ` : `${(size / 1024 / 1024).toFixed(1)} МБ`; }
+function actionButton(label, handler, className = '') { const button = node('button', label, 'dossier-action ' + className); button.type = 'button'; button.onclick = handler; return button; }
+function announce(message) { const status = byId('case-status'); status.textContent = message; status.hidden = false; clearTimeout(announce.timer); announce.timer = setTimeout(() => { status.hidden = true; }, 6500); }
+function dossierFor(p) { return { ...emptyDossier(), ...(p.dossier || {}) }; }
+function textSection(parent, title, text, empty) { const section = node('section', null, 'dossier-section'); section.append(node('h3', title)); section.append(node('p', text || empty, text ? 'dossier-prose' : 'dossier-empty')); parent.append(section); }
+function findingsFor(p) { const all = [...(dossierFor(p).findings || []), ...(p.evidence || [])], seen = new Set(); return all.filter(item => { if (seen.has(item.claimId)) return false; seen.add(item.claimId); return true; }); }
 function showDetails() {
-  const p = people.get(state.selected), body = byId('detail-body'); body.replaceChildren(portrait(p, true), node('h2', p.name), node('p', life(p)), node('p', p.place), node('p', photoTitle(p), 'detail-muted'));
-  body.append(node('p', `Основание сведений: ${basis[p.confidence]}.`, 'detail-muted'));
+  const p = people.get(state.selected), dossier = dossierFor(p), body = byId('detail-body');
+  const header = node('div', null, 'person-header'); header.append(portrait(p, true));
+  const heading = node('div', null, 'person-heading'); heading.append(node('span', 'ЛИЧНАЯ ИСТОРИЯ', 'eyebrow'), node('h2', p.name), node('p', life(p), 'person-dates'));
+  if (p.place) heading.append(node('p', p.place, 'person-place')); header.append(heading); body.replaceChildren(header);
+  if (session?.editable) body.append(node('p', 'Частное дело · изменения сохраняются локально', 'local-case-label'));
+  const tabs = node('div', null, 'dossier-tabs'); tabs.setAttribute('role', 'tablist'); tabs.setAttribute('aria-label', 'Разделы карточки человека');
+  const active = state.dossierTab || 'overview';
+  for (const key of dossierTabs) {
+    const count = key === 'materials' ? dossier.materials.length : key === 'findings' ? findingsFor(p).length : null;
+    const button = node('button', dossierNames[key] + (count === null ? '' : ` ${count}`), 'dossier-tab'); button.type = 'button'; button.id = `tab-${key}`;
+    button.setAttribute('role', 'tab'); button.setAttribute('aria-selected', String(key === active)); button.setAttribute('aria-controls', 'dossier-panel'); button.tabIndex = key === active ? 0 : -1;
+    button.onclick = () => { state.dossierTab = key; showDetails(); byId(`tab-${key}`).focus(); };
+    button.onkeydown = event => { let index = dossierTabs.indexOf(key); if (event.key === 'ArrowRight') index = (index + 1) % dossierTabs.length; else if (event.key === 'ArrowLeft') index = (index + dossierTabs.length - 1) % dossierTabs.length; else if (event.key === 'Home') index = 0; else if (event.key === 'End') index = dossierTabs.length - 1; else return; event.preventDefault(); state.dossierTab = dossierTabs[index]; showDetails(); byId(`tab-${state.dossierTab}`).focus(); };
+    tabs.append(button);
+  }
+  body.append(tabs);
+  const panel = node('div', null, 'dossier-panel'); panel.id = 'dossier-panel'; panel.setAttribute('role', 'tabpanel'); panel.setAttribute('aria-labelledby', `tab-${active}`); body.append(panel);
+  if (active === 'materials') renderMaterials(p, panel);
+  else if (active === 'findings') renderFindings(p, panel);
+  else renderOverview(p, panel);
+}
+function renderOverview(p, body) {
+  const dossier = dossierFor(p);
+  if (session?.editable) body.append(actionButton('Редактировать описание', () => editBiography(p), 'primary-soft'));
+  textSection(body, 'О человеке', dossier.biography, 'Здесь можно сохранить рассказ о человеке — характер, семейные воспоминания, важные подробности.');
+  textSection(body, 'Жизнь и деятельность', dossier.activity, 'Учёба, работа, служба, увлечения и важные события пока не описаны.');
+  const archive = node('button', null, 'archive-entry'); archive.type = 'button'; archive.append(node('span', 'Архив человека'), node('strong', `${dossier.materials.length} ${dossier.materials.length === 1 ? 'материал' : dossier.materials.length > 1 && dossier.materials.length < 5 ? 'материала' : 'материалов'}`), node('small', 'Фотографии, документы и сохранённые ссылки →'));
+  archive.onclick = () => { state.dossierTab = 'materials'; showDetails(); byId('tab-materials').focus(); }; body.append(archive);
+  body.append(node('p', photoTitle(p), 'detail-muted'), node('p', `Основание сведений: ${basis[p.confidence]}.`, 'detail-muted'));
   if (p.publicNote) body.append(node('p', p.publicNote));
   if (p.sourceLabel) body.append(node('p', p.sourceLabel, 'detail-muted'));
   if (p.evidence?.length) body.append(evidenceButton(p, true));
   if (openConflicts(p).length) body.append(node('p', 'В сведениях об этом человеке есть неразрешённое противоречие.', 'evidence-warning'));
   if (p.sources.length) {
     body.append(node('h3', 'Источники'));
-    for (const source of p.sources) {
-      let url; try { url = new URL(source.url); } catch { continue; }
-      if (!['https:', 'http:'].includes(url.protocol)) continue;
-      const a = node('a', source.label); a.href = url.href; a.target = '_blank'; a.rel = 'noopener noreferrer'; body.append(a, node('br'));
-    }
+    for (const source of p.sources) { const a = externalLink(source.label, source.url); if (a) body.append(a, node('br')); }
   }
+  renderRelations(p, body);
+}
+function renderFindings(p, body) {
+  const findings = findingsFor(p);
+  body.append(node('p', 'Здесь собраны утверждения и находки по этому человеку. Их статус сохраняется: совпадение имени и кандидат ещё не означают установленную связь.', 'dossier-intro'));
+  if (!findings.length) body.append(node('p', 'Находок пока нет. Когда к человеку будет привязана запись, семейный рассказ или результат исследования, они появятся здесь вместе с основаниями.', 'dossier-empty'));
+  for (const claim of findings) {
+    const article = node('article', null, 'finding-card'); article.dataset.claim = claim.claimId;
+    article.append(node('span', claimNames[claim.status] || 'Статус не указан', 'finding-status ' + claim.status), node('h3', claim.statement));
+    if (claim.assertionLabel) article.append(node('p', claim.assertionLabel, 'finding-label'));
+    if ((claim.conflicts || []).some(x => x.status === 'open')) article.append(node('p', 'Есть открытое противоречие', 'conflict-label'));
+    article.append(node('p', `Источников: ${(claim.sources || []).length}`, 'detail-muted'));
+    article.append(actionButton('Открыть находку и источники', () => showEvidence({name:p.name,evidence:[claim]}, true)));
+    body.append(article);
+  }
+}
+function renderMaterials(p, body) {
+  const materials = dossierFor(p).materials;
+  const top = node('div', null, 'materials-toolbar');
+  if (session?.editable) top.append(actionButton('Прикрепить материал', () => editMaterial(p), 'primary-soft'));
+  const label = node('label', 'Показать ', 'material-filter'); label.htmlFor = 'material-filter';
+  const filter = node('select'); filter.id = 'material-filter';
+  for (const [value, title] of [['all','Все материалы'],['photo','Фотографии'],['document','Документы'],['audio','Аудио'],['video','Видео'],['links','Ссылки'],['other','Другие файлы']]) { const option = node('option', title); option.value = value; filter.append(option); }
+  filter.value = materialFilter; filter.onchange = () => { materialFilter = filter.value; showDetails(); byId('material-filter').focus(); }; label.append(filter); top.append(label); body.append(top);
+  if (!materials.length) { body.append(node('div', null, 'archive-empty')); const box = body.lastChild; box.append(node('span', '✧', 'archive-empty-icon'), node('h3', 'Пока пустая папка'), node('p', session?.editable ? 'Прикрепите фотографию, скан, PDF или другой файл. Можно сохранить и ссылку на архивную запись.' : 'Здесь будут фотографии, документы, записи и ссылки, сохранённые для этого человека.')); return; }
+  const visible = materials.filter(m => materialFilter === 'all' || (materialFilter === 'links' ? !m.path && m.url : m.kind === materialFilter));
+  body.append(node('p', `Показано ${visible.length} из ${materials.length}`, 'material-count'));
+  if (!visible.length) body.append(node('p', 'В этом разделе материалов пока нет. Выберите другой фильтр.', 'dossier-empty'));
+  const grid = node('div', null, 'material-grid'); body.append(grid);
+  for (const material of visible) {
+    const card = node('article', null, 'material-card'); card.dataset.material = material.id;
+    const button = node('button', null, 'material-open'); button.type = 'button'; button.setAttribute('aria-label', `${material.path || material.url ? 'Открыть материал' : 'Открыть описание'}: ${material.title}`); button.onclick = () => showMaterial(p, material);
+    const thumb = node('div', null, 'material-thumbnail');
+    const local = materialPath(material.path);
+    if (local && material.preview === 'image') { const loading = node('span', 'Загружаем фото…', 'material-file-label thumbnail-loading'); thumb.append(loading); const img = new Image(); img.src = local; img.alt = material.title; img.loading = 'lazy'; img.onload = () => loading.remove(); img.onerror = () => { thumb.replaceChildren(node('span', 'Фото недоступно', 'material-file-label')); }; thumb.append(img); }
+    else { thumb.classList.add('file-thumbnail'); thumb.append(node('span', !local && material.url ? '↗' : material.preview === 'audio' ? '♫' : material.preview === 'video' ? '▷' : '▤', 'material-symbol'), node('span', local ? (material.fileName?.split('.').pop() || materialKinds[material.kind] || 'Файл').toUpperCase() : material.url ? 'ССЫЛКА' : 'ОПИСАНИЕ', 'material-file-label')); }
+    button.append(thumb, node('span', material.title, 'material-title')); card.append(button);
+    card.append(node('p', [materialKinds[material.kind] || 'Материал',material.date].filter(Boolean).join(' · '), 'material-meta'));
+    if (material.description) card.append(node('p', material.description, 'material-description'));
+    if (material.sourceLabel || material.locator) card.append(node('p', material.sourceLabel || material.locator, 'material-source'));
+    grid.append(card);
+  }
+}
+function showMaterial(p, material) {
+  const dialog = byId('material-dialog'), body = byId('material-body'); body.replaceChildren();
+  byId('material-title').textContent = material.title; byId('material-subtitle').textContent = [p.name,materialKinds[material.kind] || 'Материал',material.date].filter(Boolean).join(' · ');
+  const local = materialPath(material.path), external = safeWebLink(material.url);
+  const actions = node('div', null, 'material-actions');
+  if (local) { const download = node('a', 'Скачать исходный файл ↓', 'dossier-action primary-soft'); download.href = local; download.download = material.fileName || ''; actions.append(download); }
+  if (external) actions.append(externalLink('Открыть исходную страницу ↗',external));
+  if (session?.editable) { actions.append(actionButton('Изменить описание', () => editMaterial(p,material))); }
+  body.append(actions);
+  const preview = node('div', null, 'material-preview'); body.append(preview);
+  if (local && material.preview === 'image') {
+    const loading = node('p', 'Загружаем изображение…', 'detail-muted'); preview.append(loading);
+    const img = new Image(); img.src = local; img.alt = material.description || material.title; img.onload = () => loading.remove(); img.onerror = () => { preview.replaceChildren(node('p','Не удалось открыть изображение. Можно скачать исходный файл.','dossier-empty')); }; preview.append(img);
+  } else if (local && material.preview === 'pdf') {
+    const frame = node('iframe'); frame.title = material.title; frame.src = local + '#view=FitH'; preview.append(frame);
+    preview.append(node('p', 'Если PDF не отображается в браузере, скачайте исходный файл.', 'detail-muted'));
+  } else if (local && ['audio','video'].includes(material.preview)) {
+    const media = node(material.preview); media.controls = true; media.preload = 'metadata'; media.src = local; media.onerror = () => { preview.append(node('p','Браузер не смог воспроизвести файл. Скачайте оригинал для открытия в другом приложении.','dossier-empty')); }; preview.append(media);
+  } else if (local && material.preview === 'text' && (!material.size || material.size <= 1024 * 1024)) {
+    const pre = node('pre','Загружаем текст…','material-text'); preview.append(pre);
+    fetch(local).then(response=>{if(!response.ok)throw Error('load');return response.text();}).then(text=>{if(pre.isConnected)pre.textContent=text.length>50000?text.slice(0,50000)+'\n\n…Показан фрагмент; полный текст — в исходном файле.':text;}).catch(()=>{if(pre.isConnected)pre.textContent='Текст не удалось загрузить. Скачайте исходный файл.';});
+  } else preview.append(node('p', local ? 'Этот формат хранится как оригинальный файл. Скачайте его, чтобы открыть в подходящем приложении.' : external ? 'Это сохранённая ссылка. Исходная страница откроется отдельно; её содержимое не загружается автоматически.' : 'Здесь сохранено описание материала. Сам файл не включён в эту версию.', 'dossier-empty'));
+  if (material.description) textSection(body,'Описание',material.description,'');
+  const metadata = node('dl',null,'material-metadata');
+  for (const [label,value] of [['Источник',material.sourceLabel],['Шифр / страница',material.locator],['Права и условия',material.rights],['Файл',material.fileName],['Размер',bytes(material.size)]]) if(value){metadata.append(node('dt',label),node('dd',value));}
+  if (material.sourceUrl) { const link = externalLink('Открыть источник ↗',material.sourceUrl); if(link){metadata.append(node('dt','Ссылка на источник'));const dd=node('dd');dd.append(link);metadata.append(dd);} }
+  body.append(metadata);
+  if (!dialog.open) dialog.showModal(); dialog.scrollTop = 0;
+}
+async function apiPost(url, payload) {
+  if (!session?.editable || !session.token) throw Error('Редактирование доступно только в локальном семейном деле.');
+  const response = await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','X-Drevo-Token':session.token},body:JSON.stringify({caseVersion:session.caseVersion,...payload})});
+  let result; try {result=await response.json();}catch {result={error:'Не удалось прочитать ответ локального дела.'};}
+  if (!response.ok) throw Error(response.status===409 ? 'Дело изменилось в другой вкладке или на диске. Ваш текст остаётся в форме. Сохраните его копию и обновите страницу перед повторным сохранением.' : result.error || `Не удалось сохранить изменения (${response.status}).`);
+  if (!result.tree || typeof result.caseVersion !== 'string') throw Error('Локальное дело вернуло неполный результат. Обновите страницу для проверки сохранённых данных.');
+  session.caseVersion=result.caseVersion; replaceModel(result.tree); return result;
+}
+function replaceModel(next) {
+  const selected=state.selected; model=next; people=new Map(model.persons.map(p=>[p.id,p]));
+  if(!people.has(state.target))state.target=model.rootPerson;
+  if(!people.has(selected)){state.selected=null;byId('details').hidden=true;}
+  for(const id of ['branches','leaves','mini-map','target'])byId(id).replaceChildren(); cards.clear();lines.clear();
+  updateModelHeading();fillTargets();drawFamily();paintCamera();selection();
+}
+function updateModelHeading() {
+  document.title=model.title+' · Древо';byId('tree-title').textContent=model.title;
+  byId('summary').textContent=`Людей: ${model.persons.length} · Связей: ${model.edges.length} · история продолжается`;
+  byId('demo-label').textContent=model.demo?'ВЫМЫШЛЕННЫЙ ПРИМЕР · БЕЗ СЕМЕЙНЫХ ДАННЫХ':'СЕМЕЙНАЯ ИСТОРИЯ';
+  byId('demo-explanation').textContent=model.demo?'Это вымышленная семья. Имена, даты, связи и архивные материалы придуманы для знакомства с приложением.':session?.editable?'Это локальное семейное дело. Описания и прикреплённые файлы сохраняются в нём; публикация выполняется отдельно.':'Публичная сборка содержит выбранные сведения и материалы. Публикуйте её только в согласованном составе.';
+}
+function fillTargets(){for(const p of model.persons){const option=node('option',p.name);option.value=p.id;byId('target').append(option);}byId('target').value=state.target;}
+function inputField(form,label,name,value='',type='text',hint='') {
+  const box=node('div',null,'editor-field'),title=node('label',label);title.htmlFor='edit-'+name;
+  const input=node(type==='textarea'?'textarea':type==='select'?'select':'input');input.id='edit-'+name;input.name=name;
+  if(!['textarea','select'].includes(type))input.type=type; if(type==='textarea')input.rows=name==='activity'?9:5; input.value=value || '';
+  box.append(title,input); if(hint){const small=node('small',hint);small.id='hint-'+name;input.setAttribute('aria-describedby',small.id);box.append(small);}form.append(box);return input;
+}
+function openEditor(title,subtitle) {
+  const dialog=byId('editor-dialog');byId('editor-title').textContent=title;byId('editor-subtitle').textContent=subtitle;
+  const form=node('form');form.id='dossier-editor';const status=node('p',null,'editor-status');status.id='editor-status';status.setAttribute('role','status');status.hidden=true;
+  byId('editor-body').replaceChildren(form);editorState={dirty:false,busy:false,status};form.addEventListener('input',()=>{editorState.dirty=true;});form.addEventListener('change',()=>{editorState.dirty=true;});
+  if(!dialog.open)dialog.showModal();dialog.scrollTop=0;return {form,status};
+}
+function editorActions(form,status,saveLabel='Сохранить') {
+  form.append(status);const actions=node('div',null,'editor-actions'),save=node('button',saveLabel,'dossier-action primary-solid');save.type='submit';
+  const cancel=actionButton('Отменить изменения',()=>{if(!editorState?.busy){editorState=null;byId('editor-dialog').close();}});actions.append(save,cancel);form.append(actions);return save;
+}
+function closeEditor(force=false) {
+  if(editorState?.busy)return;
+  if(editorState?.dirty&&!force){editorState.status.hidden=false;editorState.status.textContent='Есть несохранённые изменения. Сохраните их или нажмите «Отменить изменения».';editorState.status.setAttribute('role','alert');return;}
+  editorState=null;byId('editor-dialog').close();
+}
+async function submitEditor(form,operation,message) {
+  if(editorState?.busy)return;const current=editorState;current.busy=true;current.status.hidden=false;current.status.textContent='Сохраняем…';current.status.classList.remove('failed');
+  const controls=[...form.querySelectorAll('input,textarea,select,button')];controls.forEach(x=>x.disabled=true);
+  try {await operation();current.dirty=false;current.busy=false;closeEditor(true);announce(message);}
+  catch(error){current.status.textContent=error.message;current.status.classList.add('failed');current.status.setAttribute('role','alert');current.busy=false;controls.forEach(x=>x.disabled=false);}
+}
+function editBiography(p) {
+  const dossier=dossierFor(p),{form,status}=openEditor('История человека',p.name+' · текст сохранится в частном семейном деле');
+  const biography=inputField(form,'О человеке','biography',dossier.biography,'textarea','Семейные воспоминания, характер и важные подробности.'),activity=inputField(form,'Жизнь и деятельность','activity',dossier.activity,'textarea','Можно писать по годам: учёба, работа, служба, переезды, увлечения.');
+  biography.maxLength=100000;activity.maxLength=100000;editorActions(form,status);
+  form.onsubmit=event=>{event.preventDefault();submitEditor(form,()=>apiPost(`/api/people/${encodeURIComponent(p.id)}/dossier`,{biography:biography.value,activity:activity.value}),'Описание человека сохранено.');};biography.focus();
+}
+function fileBase64(file) {return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result).split(',')[1]);reader.onerror=()=>reject(Error('Не удалось прочитать выбранный файл.'));reader.readAsDataURL(file);});}
+function editMaterial(p,material=null) {
+  const isNew=!material,{form,status}=openEditor(isNew?'Добавить в архив':'Описание материала',p.name+' · исходные файлы сохраняются без изменения');
+  const title=inputField(form,'Название','title',material?.title);title.required=true;title.maxLength=300;
+  let fileInput,urlInput,mode;
+  if(isNew){mode=inputField(form,'Что добавить','material-mode','','select');for(const [value,label]of[['file','Файл с компьютера'],['link','Ссылку на запись']]){const o=node('option',label);o.value=value;mode.append(o);}fileInput=inputField(form,'Исходный файл','file','','file','До 20 МБ. Фото, скан, PDF, текст, аудио, видео и другие поддерживаемые документы.');urlInput=inputField(form,'Адрес страницы','url','','url','Содержимое сайта автоматически не копируется.');urlInput.parentElement.hidden=true;fileInput.required=true;mode.onchange=()=>{fileInput.parentElement.hidden=mode.value!=='file';urlInput.parentElement.hidden=mode.value!=='link';fileInput.required=mode.value==='file';urlInput.required=mode.value==='link';};fileInput.onchange=()=>{const file=fileInput.files[0];if(file&&!title.value)title.value=file.name;};}
+  else if(material.url){urlInput=inputField(form,'Адрес страницы','url',material.url,'url');}
+  const description=inputField(form,'Описание','description',material?.description,'textarea','Что изображено или записано, кто найден, что ещё нужно проверить.');description.maxLength=20000;
+  const date=inputField(form,'Дата или период материала','date',material?.date,'text','Например: 1954, около 1960 года или неизвестно.');date.maxLength=100;
+  const source=inputField(form,'Источник из дела','sourceId',material?.sourceId,'select');const none=node('option','Не выбран');none.value='';source.append(none);
+  for(const s of session.sources || []){const option=node('option',s.title);option.value=s.id;source.append(option);}source.value=material?.sourceId || '';
+  const sourceLabel=inputField(form,'Откуда получен материал','sourceLabel',material?.sourceLabel,'text','Архив, владелец фотографии, название сайта или семейный альбом.'),sourceUrl=inputField(form,'Ссылка на источник','sourceUrl',material?.sourceUrl,'url'),locator=inputField(form,'Архивный шифр, страница или подпись','locator',material?.locator),rights=inputField(form,'Права и условия использования','rights',material?.rights,'text','Например: семейный оригинал; разрешение владельца; только личное использование.');
+  editorActions(form,status,isNew?'Сохранить в карточке':'Сохранить описание');
+  if(!isNew){const detach=node('div',null,'detach-material');detach.append(node('p','Можно убрать материал из этой карточки. Исходный файл останется в семейном деле.'));
+    detach.append(actionButton('Убрать из карточки',()=>submitEditor(form,async()=>{await apiPost(`/api/people/${encodeURIComponent(p.id)}/materials/${encodeURIComponent(material.id)}/remove`,{});byId('material-dialog').close();},'Материал убран из карточки. Исходный файл сохранён.'),'danger-soft'));form.append(detach);}
+  form.onsubmit=event=>{event.preventDefault();submitEditor(form,async()=>{
+    const payload={title:title.value,description:description.value,date:date.value,sourceId:source.value,sourceLabel:sourceLabel.value,sourceUrl:sourceUrl.value,locator:locator.value,rights:rights.value};
+    if(isNew&&mode.value==='file'){const file=fileInput.files[0];if(!file)throw Error('Выберите файл.');if(file.size>fileLimit)throw Error('Файл больше 20 МБ. Выберите меньшую копию для просмотра; исходный документ можно сохранить отдельно в деле.');payload.file={name:file.name,data:await fileBase64(file)};}
+    else if(urlInput)payload.url=urlInput.value;
+    await apiPost(`/api/people/${encodeURIComponent(p.id)}/materials${isNew?'':'/'+encodeURIComponent(material.id)}`,payload);
+    if(byId('material-dialog').open)byId('material-dialog').close();state.dossierTab='materials';materialFilter='all';showDetails();
+  },isNew?'Материал сохранён в карточке.':'Описание материала сохранено.');};title.focus();
+}
+async function loadSession() {
+  try {const response=await fetch('api/session',{cache:'no-store'});if(!response.ok)return;const result=await response.json();if(result.editable===true&&typeof result.token==='string'&&typeof result.caseVersion==='string'){session=result;updateModelHeading();if(state.selected)showDetails();}}
+  catch { /* A standalone published viewer remains read-only. */ }
+}
+
+function renderRelations(p, body) {
   body.append(node('h3', state.mode === 'path' ? 'Выбранная цепочка' : 'Ближайшие связи'));
   if (state.mode === 'path') {
     const found = route(p.id, state.target);
@@ -220,7 +414,7 @@ function showDetails() {
     for (const e of nearby) { const id = e.a === p.id ? e.b : e.a, row = node('div', null, 'relation-row'), button = node('button', people.get(id).name, 'related-person'); button.append(node('small', relationTitle(e))); button.onclick = () => { choose(id); center(id); }; row.append(button); if (openConflicts(e).length) row.append(node('p', 'Есть открытое противоречие', 'conflict-label')); row.append(evidenceButton(e)); body.append(row); }
   }
 }
-function choose(id) { state.selected = id; byId('details').hidden = false; selection(); const q = new URLSearchParams({ person: id }); history.replaceState(null, '', '#' + q); }
+function choose(id) { if (state.selected !== id) { state.dossierTab = 'overview'; materialFilter = 'all'; } state.selected = id; byId('details').hidden = false; selection(); const q = new URLSearchParams({ person: id }); history.replaceState(null, '', '#' + q); }
 function closeDetails() { state.selected = null; byId('details').hidden = true; selection(); history.replaceState(null, '', location.pathname); }
 function search() {
   const query = folded(byId('search').value.trim()), results = byId('matches'); results.replaceChildren(); results.hidden = !query;
@@ -232,20 +426,22 @@ function search() {
 async function start() {
   const response = await fetch('tree.json'); if (!response.ok) throw Error('Не удалось загрузить подготовленные данные');
   model = await response.json(); people = new Map(model.persons.map(p => [p.id, p])); state.target = model.rootPerson;
-  document.title = model.title + ' · Древо'; byId('tree-title').textContent = model.title;
-  byId('summary').textContent = `Людей: ${model.persons.length} · Связей: ${model.edges.length} · история продолжается`;
-  byId('demo-label').textContent = model.demo ? 'ВЫМЫШЛЕННЫЙ ПРИМЕР · БЕЗ СЕМЕЙНЫХ ДАННЫХ' : 'СЕМЕЙНАЯ ИСТОРИЯ';
-  byId('demo-explanation').textContent = model.demo ? 'Это вымышленная семья. Имена, даты и связи придуманы для знакомства с приложением.' : 'Публичная сборка содержит показанные имена и даты. Публикуйте её только в согласованном составе.';
-  for (const p of model.persons) { const option = node('option', p.name); option.value = p.id; byId('target').append(option); } byId('target').value = state.target;
+  updateModelHeading(); fillTargets();
   drawFamily(); if (innerWidth < 800) center(model.rootPerson, .85); else fit();
   const supplied = new URLSearchParams(location.hash.slice(1)).get('person'); if (people.has(supplied)) { choose(supplied); center(supplied); }
   byId('search').addEventListener('input', search); byId('search').addEventListener('keydown', e => { if (e.key === 'Enter') byId('matches').querySelector('button')?.click(); if (e.key === 'Escape') byId('matches').hidden = true; });
-  byId('mode').onchange = e => { state.mode = e.target.value; byId('target').hidden = state.mode !== 'path'; if (!state.selected) choose(model.rootPerson); else selection(); };
-  byId('target').onchange = e => { state.target = e.target.value; selection(); };
+  byId('mode').onchange = e => { state.mode = e.target.value; state.dossierTab = 'overview'; byId('target').hidden = state.mode !== 'path'; if (!state.selected) choose(model.rootPerson); else selection(); };
+  byId('target').onchange = e => { state.target = e.target.value; state.dossierTab = 'overview'; selection(); };
   byId('fit').onclick = fit; byId('brand').onclick = e => { e.preventDefault(); fit(); };
   byId('zoom-in').onclick = () => scaleTo(state.zoom * 1.25); byId('zoom-out').onclick = () => scaleTo(state.zoom / 1.25); byId('zoom-level').onclick = () => scaleTo(1);
   byId('close-details').onclick = closeDetails; byId('about').onclick = () => byId('guide').showModal(); byId('close-guide').onclick = () => byId('guide').close();
   byId('close-evidence').onclick = () => byId('evidence-dialog').close();
+  byId('close-material').onclick = () => byId('material-dialog').close();
+  byId('close-editor').onclick = () => closeEditor();
+  byId('editor-dialog').addEventListener('cancel', event => { if (editorState?.dirty || editorState?.busy) {event.preventDefault();closeEditor();} });
+  byId('editor-dialog').addEventListener('close', () => {editorState = null; const focusTarget = byId('material-dialog').open ? byId('material-dialog').querySelector('.material-actions button') : byId(`tab-${state.dossierTab}`); focusTarget?.focus();});
+  byId('material-dialog').addEventListener('close', () => {if(!byId('editor-dialog').open)byId(`tab-${state.dossierTab}`)?.focus();});
+  window.addEventListener('beforeunload',event=>{if(editorState?.dirty){event.preventDefault();event.returnValue='';}});
   const garden = byId('garden');
   garden.addEventListener('pointerdown', e => { if (e.button !== 0 || e.target.closest('button,[data-connection]')) return; overview = false; drag = { id: e.pointerId, x: e.clientX, y: e.clientY, left: state.left, top: state.top }; garden.setPointerCapture(e.pointerId); garden.classList.add('dragging'); });
   garden.addEventListener('pointermove', e => { if (!drag || e.pointerId !== drag.id) return; state.left = drag.left + e.clientX - drag.x; state.top = drag.top + e.clientY - drag.y; paintCamera(); });
@@ -253,7 +449,8 @@ async function start() {
   garden.addEventListener('wheel', e => { e.preventDefault(); overview = false; if (e.ctrlKey || e.metaKey) scaleTo(state.zoom * Math.exp(-e.deltaY * .002), e.clientX, e.clientY); else { state.left -= e.deltaX; state.top -= e.deltaY; paintCamera(); } }, { passive: false });
   byId('map-button').onclick = e => { overview = false; const r = byId('mini-map').getBoundingClientRect(), scale = Math.min(r.width / model.width, r.height / model.height); const x = (e.clientX - r.left - (r.width - model.width * scale) / 2) / scale, y = (e.clientY - r.top - (r.height - model.height * scale) / 2) / scale; state.left = innerWidth / 2 - x * state.zoom; state.top = innerHeight / 2 - y * state.zoom; paintCamera(); };
   window.addEventListener('resize', () => { if (overview) fit(); else { state.left += (innerWidth - previousViewport.width) / 2; state.top += (innerHeight - previousViewport.height) / 2; paintCamera(); } previousViewport = { width: innerWidth, height: innerHeight }; });
-  document.addEventListener('keydown', e => { if (byId('evidence-dialog').open || byId('guide').open) return; if (e.key === 'Escape') closeDetails(); if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); byId('search').focus(); } });
-  window.drevo = { getState: () => structuredClone({ ...state, personCount: model.persons.length }), fit, center };
+  document.addEventListener('keydown', e => { if (byId('evidence-dialog').open || byId('guide').open || byId('material-dialog').open || byId('editor-dialog').open) return; if (e.key === 'Escape') closeDetails(); if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); byId('search').focus(); } });
+  window.drevo = { getState: () => structuredClone({ ...state, personCount: model.persons.length, editable: session?.editable === true }), fit, center };
+  void loadSession();
 }
 start().catch(error => { byId('error').hidden = false; byId('error').textContent = 'Не удалось открыть древо: ' + error.message; console.error(error); });

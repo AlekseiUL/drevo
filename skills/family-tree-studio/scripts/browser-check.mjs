@@ -34,7 +34,7 @@ try {
   });
   browser = await chromium.launch({ headless: true, ...(option('--channel') ? { channel: option('--channel') } : {}) });
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
-  const errors = [], external = []; page.on('pageerror', error => errors.push(error.message)); page.on('request', request => { if (!request.url().startsWith(url) && !request.url().startsWith('data:')) external.push(request.url()); });
+  const errors = [], external = []; page.on('pageerror', error => errors.push(error.message)); page.on('request', request => { if (/^https?:/.test(request.url()) && !request.url().startsWith(url)) external.push(request.url()); });
   const load = async () => { await page.goto(url); await page.waitForFunction(() => window.drevo); };
   const search = async value => { await page.locator('#search').fill(value); await page.locator('#matches button').first().click(); };
   const closeEvidence = async () => page.getByRole('button', { name: 'Закрыть основания', exact: true }).click();
@@ -71,6 +71,79 @@ try {
   const ancestry = await page.evaluate(() => drevo.getState()); assert(!ancestry.people.includes('l1')); assert(ancestry.people.includes('l2')); passed('guardianship excluded from ancestry, adoption preserved');
   await page.locator('#close-details').click(); await search('семен'); assert.equal((await page.evaluate(() => drevo.getState())).selected, 'semen'); passed('search preserves e/yo behavior');
   const zoom = (await page.evaluate(() => drevo.getState())).zoom; await page.locator('#zoom-in').click(); assert((await page.evaluate(() => drevo.getState())).zoom > zoom); passed('zoom remains functional');
+  await search('Глеб');
+  assert((await page.locator('#details').textContent()).includes('1983–1991'));
+  await page.getByRole('tab', {name:'Материалы 4',exact:true}).click();
+  assert.equal(await page.locator('.material-card').count(),4);
+  await page.getByRole('button',{name:'Открыть материал: Мастерская: учебная иллюстрация',exact:true}).click();
+  await page.locator('#material-body img').waitFor(); await page.waitForFunction(()=>document.querySelector('#material-body img')?.naturalWidth>0);
+  assert((await page.locator('#material-body').textContent()).includes('НЕ') || (await page.locator('#material-body').textContent()).includes('не фотография'));
+  assert((await page.locator('#material-body .material-metadata').textContent()).includes('DEMO-GL-01'));
+  assert.equal(await page.locator('#material-body a[download]').getAttribute('href'),'assets/materials/gleb-workshop.png');
+  await page.getByRole('button',{name:'Закрыть материал',exact:true}).click(); passed('person biography and real local image open with provenance and original download');
+  await page.getByRole('button',{name:'Открыть материал: Учебная карточка деятельности',exact:true}).click();
+  assert((await page.locator('#material-body iframe').getAttribute('src')).endsWith('gleb-archive-card.pdf#view=FitH'));
+  await page.getByRole('button',{name:'Закрыть материал',exact:true}).click();
+  await page.getByRole('button',{name:'Открыть материал: Текст учебной карточки',exact:true}).click();
+  await page.waitForFunction(()=>document.querySelector('.material-text')?.textContent.includes('1983'));
+  await page.getByRole('button',{name:'Закрыть материал',exact:true}).click(); passed('PDF and text materials open inside the person archive');
+  await page.locator('#material-filter').selectOption('photo'); assert.equal(await page.locator('.material-card').count(),1);
+  await page.getByRole('tab',{name:'Находки 2',exact:true}).click();
+  await page.locator('.finding-card[data-claim="claim-gleb-workshop-date"] button').click();
+  assert((await page.locator('#evidence-body').textContent()).includes('2004 и 2005'));
+  await closeEvidence(); passed('material filters and unpromoted conflicting findings stay attached to the right person');
+
+  // UI editing is checked against a deterministic local API fixture; real case storage is tested separately.
+  let liveTree=await page.evaluate(()=>fetch('tree.json').then(r=>r.json())), version=1, rejectNext=false;
+  const posts=[];
+  await page.route('**/api/session',route=>route.fulfill({contentType:'application/json',body:JSON.stringify({editable:true,token:'browser-fixture-token',caseVersion:String(version),sources:[]})}));
+  await page.route('**/tree.json',route=>route.fulfill({contentType:'application/json',body:JSON.stringify(liveTree)}));
+  await page.route('**/api/people/**',async route=>{
+    const request=route.request(),payload=request.postDataJSON();
+    assert.equal(request.headers()['x-drevo-token'],'browser-fixture-token');assert.equal(payload.caseVersion,String(version));posts.push({url:request.url(),payload});
+    if(rejectNext){rejectNext=false;await route.fulfill({status:409,contentType:'application/json',body:JSON.stringify({error:'stale'})});return;}
+    const person=liveTree.persons.find(p=>p.id==='gleb');
+    if(request.url().endsWith('/dossier')){person.dossier.biography=payload.biography;person.dossier.activity=payload.activity;}
+    else if(request.url().endsWith('/remove'))person.dossier.materials=person.dossier.materials.filter(m=>m.id!=='browser-upload');
+    else if(request.url().endsWith('/browser-upload'))Object.assign(person.dossier.materials.find(m=>m.id==='browser-upload'),payload);
+    else {assert.equal(Buffer.from(payload.file.data,'base64').toString(),'Учебная загруженная запись');await writeFile(path.join(project,'dist/assets/materials/browser-upload.txt'),Buffer.from(payload.file.data,'base64'));person.dossier.materials.push({...payload,file:undefined,id:'browser-upload',kind:'document',preview:'text',path:'assets/materials/browser-upload.txt',fileName:payload.file.name,mediaType:'text/plain',size:Buffer.from(payload.file.data,'base64').length});}
+    version++;await route.fulfill({contentType:'application/json',body:JSON.stringify({caseVersion:String(version),tree:liveTree})});
+  });
+  await load();await page.waitForFunction(()=>drevo.getState().editable);await search('Глеб');
+  await page.getByRole('button',{name:'Редактировать описание',exact:true}).click();
+  await page.getByLabel('О человеке',{exact:true}).fill('<script>window.__dossierInjected=true</script> Учебный рассказ');
+  await page.getByLabel('Жизнь и деятельность',{exact:true}).fill('2001 — вымышленная работа.\n2002 — продолжение.');
+  await page.getByRole('button',{name:'Сохранить',exact:true}).click();
+  await page.waitForFunction(()=>!document.querySelector('#editor-dialog').open);
+  assert((await page.locator('#details').textContent()).includes('2001 — вымышленная работа.'));
+  assert.equal(await page.evaluate(()=>window.__dossierInjected||false),false);assert.equal(await page.locator('#details script').count(),0);
+  assert.equal(posts[0].payload.activity,'2001 — вымышленная работа.\n2002 — продолжение.');passed('local biography editor posts versioned text and renders it safely');
+  await page.getByRole('button',{name:'Редактировать описание',exact:true}).click();
+  await page.getByLabel('Жизнь и деятельность',{exact:true}).fill('Несохранённый черновик');rejectNext=true;
+  await page.getByRole('button',{name:'Сохранить',exact:true}).click();
+  await page.waitForFunction(()=>document.querySelector('#editor-status')?.textContent.includes('другой вкладке'));
+  assert.equal(await page.getByLabel('Жизнь и деятельность',{exact:true}).inputValue(),'Несохранённый черновик');
+  await page.keyboard.press('Escape');assert.equal(await page.locator('#editor-dialog').evaluate(el=>el.open),true);
+  await page.getByRole('button',{name:'Отменить изменения',exact:true}).click();passed('conflicting save preserves the draft and Escape cannot silently discard it');
+  await page.getByRole('tab',{name:'Материалы 4',exact:true}).click();await page.locator('#material-filter').selectOption('photo');
+  await page.getByRole('button',{name:'Прикрепить материал',exact:true}).click();
+  await page.getByLabel('Исходный файл',{exact:true}).setInputFiles({name:'учебная-запись.txt',mimeType:'text/plain',buffer:Buffer.from('Учебная загруженная запись')});
+  await page.getByLabel('Название',{exact:true}).fill('Новая учебная запись');await page.getByLabel('Архивный шифр, страница или подпись',{exact:true}).fill('Учебный лист 3');
+  await page.getByRole('button',{name:'Сохранить в карточке',exact:true}).click();await page.waitForFunction(()=>!document.querySelector('#editor-dialog').open);
+  assert.equal(await page.locator('.material-card').count(),5);
+  await page.getByRole('button',{name:'Открыть материал: Новая учебная запись',exact:true}).click();
+  await page.waitForFunction(()=>document.querySelector('.material-text')?.textContent==='Учебная загруженная запись');
+  assert((await page.locator('.material-metadata').textContent()).includes('Учебный лист 3'));passed('file picker sends original bytes and the saved material appears in the person archive');
+  await page.getByRole('button',{name:'Изменить описание',exact:true}).click();await page.getByLabel('Название',{exact:true}).fill('Исправленная запись');
+  await page.getByRole('button',{name:'Сохранить описание',exact:true}).click();await page.waitForFunction(()=>!document.querySelector('#editor-dialog').open);
+  await page.getByRole('button',{name:'Открыть материал: Исправленная запись',exact:true}).click();
+  await page.getByRole('button',{name:'Изменить описание',exact:true}).click();await page.getByRole('button',{name:'Убрать из карточки',exact:true}).click();
+  await page.waitForFunction(()=>!document.querySelector('#editor-dialog').open);assert.equal(await page.locator('.material-card').count(),4);
+  assert.equal(await readFile(path.join(project,'dist/assets/materials/browser-upload.txt'),'utf8'),'Учебная загруженная запись');passed('metadata edit and detach update the card while the original remains available');
+  await page.setViewportSize({width:390,height:844});await load();await page.waitForFunction(()=>drevo.getState().editable);await search('Глеб');
+  await page.getByRole('tab',{name:'Материалы 4',exact:true}).click();await page.getByRole('button',{name:'Прикрепить материал',exact:true}).click();
+  assert(await page.locator('#editor-dialog').evaluate(el=>el.scrollWidth<=el.clientWidth+1));assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth),390);
+  await page.getByRole('button',{name:'Отменить изменения',exact:true}).click();passed('archive and upload form fit a narrow mobile viewport');
   await page.setViewportSize({ width: 390, height: 844 }); await load(); await search('Мира'); await page.locator('#details .evidence-button').first().click();
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth), 390);
   assert(await page.locator('#evidence-dialog').evaluate(el => el.scrollWidth <= el.clientWidth + 1)); passed('evidence drawer fits narrow viewport');

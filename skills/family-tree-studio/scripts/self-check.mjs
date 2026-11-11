@@ -1,10 +1,13 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { mkdtemp, readFile, writeFile, mkdir, rm, symlink } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { spawn, spawnSync } from 'node:child_process';
 import path from 'node:path';
-import { validateFamily, publicFamily, layoutFamily } from '../assets/viewer/scripts/model.mjs';
+import http from 'node:http';
+import { validateFamily, publicFamily, layoutFamily, materialPath } from '../assets/viewer/scripts/model.mjs';
+import { materialType, verifyMaterialBytes } from '../assets/viewer/scripts/material-policy.mjs';
 
 const skill = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const scratch = await mkdtemp(path.join(tmpdir(), 'drevo-new-viewer-'));
@@ -51,6 +54,7 @@ try {
     x.persons[0].evidence[0].conclusion.privateReasoning = 'SECRET_SENTINEL'; assert(!JSON.stringify(publicFamily(x)).includes('SECRET_SENTINEL'));
   });
   check('unsafe citation URLs are removed without losing the reading', () => { const x = structuredClone(demo); x.connections[0].evidence[0].sources[0].url = 'javascript:alert(1)'; const s = publicFamily(x).edges[0].evidence[0].sources[0]; assert.equal(s.url, null); assert(s.reading); });
+  check('credential-bearing links are removed without losing citation text', () => { const x = structuredClone(demo); x.connections[0].evidence[0].sources[0].url = 'https://account:secret@example.invalid/record'; const out = publicFamily(x).edges[0].evidence[0].sources[0]; assert.equal(out.url, null); assert(out.reading && out.locator); });
   check('unsupported evidence category rejected', () => { const x = structuredClone(demo); x.connections[0].evidence[0].sources[0].type = 'proven'; assert.throws(() => validateFamily(x)); });
   check('unknown evidence information category rejected', () => { const x = structuredClone(demo); x.connections[0].evidence[0].sources[0].information = 'verified'; assert.throws(() => validateFamily(x)); });
   check('negative evidence scope and source metadata survive', () => { const x = structuredClone(demo), s = x.connections[0].evidence[0].sources[0]; s.type = 'negative'; s.negativeScope = 'Учебные кадры 1–20: ожидаемая запись не найдена'; s.form = 'derivative'; s.accessedAt = '2026-11-11'; const out = publicFamily(x).edges[0].evidence[0].sources[0]; assert.equal(out.negativeScope, s.negativeScope); assert.equal(out.form, 'derivative'); assert.equal(out.accessedAt, '2026-11-11'); });
@@ -64,6 +68,25 @@ try {
   check('only web links survive projection', () => { const x = structuredClone(demo); x.persons[0].publicSources = [{ url: 'javascript:alert(1)' }, { url: 'file:///private/test' }, { url: 'https://example.org/record', label: 'Source' }]; assert.equal(publicFamily(x).persons[0].sources.length, 1); });
   check('photo traversal rejected', () => { const x = structuredClone(demo); x.persons[0].portrait = { kind: 'original', path: 'assets/photos/../../private/test.png' }; assert.throws(() => validateFamily(x)); });
   check('external photo rejected', () => { const x = structuredClone(demo); x.persons[0].portrait = { kind: 'original', path: 'https://example.org/photo.jpg' }; assert.throws(() => validateFamily(x)); });
+  const imageBytes = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aY9sAAAAASUVORK5CYII=', 'base64');
+  const textBytes = Buffer.from('Вымышленная расшифровка документа. <script>не исполняется</script>\n');
+  const pdfBytes = Buffer.from('%PDF-1.4\n% Synthetic structural fixture, not a historic record\n%%EOF\n');
+  const docBytes = Buffer.from('Download-only fixture');
+  const material = (id, ext, bytes) => ({ id, title: `Учебный материал ${id}`, path: `assets/materials/${id}.${ext}`, fileName: `${id}.${ext}`, kind: materialType(`a.${ext}`).kind, mediaType: materialType(`a.${ext}`).mediaType, size: bytes.length, sha256: createHash('sha256').update(bytes).digest('hex'), sourceLabel: 'Вымышленный пример', description: 'Описание материала', locator: 'Учебная страница 1', rights: 'Собственный пример' });
+  const exampleMaterials = [material('check-photo','png',imageBytes),material('check-text','txt',textBytes),material('check-pdf','pdf',pdfBytes),material('check-document','docx',docBytes)];
+  const dossierFixture = structuredClone(demo);
+  dossierFixture.persons[0].dossier = { biography:'Жизнь вымышленного человека.\nВторой абзац.', activity:'Учебное описание работы и увлечений.', materials:exampleMaterials, findings:[structuredClone(demo.connections[0].evidence[0])] };
+  check('dossier biography activity and exact findings survive projection', () => { const out=publicFamily(dossierFixture).persons[0].dossier; assert.equal(out.biography,dossierFixture.persons[0].dossier.biography); assert.equal(out.activity,dossierFixture.persons[0].dossier.activity); assert.equal(out.findings[0].claimId,demo.connections[0].evidence[0].claimId); assert.equal(out.materials.length,4); });
+  check('material preview and MIME are derived from its file type', () => { const x=structuredClone(dossierFixture); x.persons[0].dossier.materials[0].mediaType='text/html'; x.persons[0].dossier.materials[0].preview='script'; const out=publicFamily(x).persons[0].dossier.materials; assert.equal(out[0].mediaType,'image/png'); assert.equal(out[0].preview,'image'); assert.equal(out[2].preview,'pdf'); assert.equal(out[3].preview,'download'); });
+  check('dossier and materials exclude unlisted private metadata', () => { const x=structuredClone(dossierFixture); x.persons[0].dossier.notes='SECRET_SENTINEL'; x.persons[0].dossier.materials[0].originalPath='/private/SECRET_SENTINEL'; x.persons[0].dossier.findings[0].sources[0].notes='SECRET_SENTINEL'; assert(!JSON.stringify(publicFamily(x)).includes('SECRET_SENTINEL')); });
+  check('metadata-only material remains available without inventing a file', () => { const x=structuredClone(dossierFixture); x.persons[0].dossier.materials=[{id:'catalogue',title:'Каталожная карточка',kind:'document',path:'',sha256:'',url:'https://example.invalid/catalogue'}]; const out=publicFamily(x).persons[0].dossier.materials[0]; assert.equal(out.path,null); assert.equal(out.url,'https://example.invalid/catalogue'); });
+  check('unsafe material links are removed from projection', () => { const x=structuredClone(dossierFixture); x.persons[0].dossier.materials[0].url='javascript:alert(1)'; x.persons[0].dossier.materials[0].sourceUrl='file:///private/test'; const out=publicFamily(x).persons[0].dossier.materials[0]; assert.equal(out.url,null); assert.equal(out.sourceUrl,null); });
+  check('duplicate material identity and malformed dossier are rejected', () => { const x=structuredClone(dossierFixture); x.persons[0].dossier.materials.push(x.persons[0].dossier.materials[0]); assert.throws(()=>validateFamily(x)); x.persons[0].dossier='wrong'; assert.throws(()=>validateFamily(x)); });
+  check('unsupported active material formats and traversal are rejected', () => { for(const value of ['assets/materials/test.svg','assets/materials/test.html','assets/materials/test.js','assets/materials/../private.txt','assets/materials/nested/test.txt','https://example.org/test.png']) assert.throws(()=>materialPath(value)); });
+  check('candidate findings remain candidates and do not create relations', () => { const x=structuredClone(dossierFixture), finding=x.persons[0].dossier.findings[0]; finding.status='candidate'; const out=publicFamily(x); assert.equal(out.persons[0].dossier.findings[0].status,'candidate'); assert.equal(out.edges.length,demo.connections.length); });
+  check('renamed active content cannot masquerade as an image or PDF', () => { assert.throws(()=>verifyMaterialBytes(Buffer.from('<html>not an image</html>'),'test.png')); assert.throws(()=>verifyMaterialBytes(Buffer.from('<script>not a pdf</script>'),'test.pdf')); });
+  check('text preview requires UTF-8 without binary NUL bytes', () => { assert.doesNotThrow(()=>verifyMaterialBytes(textBytes,'test.txt')); assert.throws(()=>verifyMaterialBytes(Buffer.from([0xff,0]),'test.txt')); });
+  check('material checksum and size changes are detected', () => { assert.throws(()=>verifyMaterialBytes(imageBytes,'test.png',{size:1})); assert.throws(()=>verifyMaterialBytes(imageBytes,'test.png',{sha256:'0'.repeat(64)})); });
   check('project generator accepts empty destination', () => command(path.join(skill, 'scripts/create-project.mjs'), ['--out', project]));
   check('project generator rejects occupied destination', () => command(path.join(skill, 'scripts/create-project.mjs'), ['--out', project], false));
   const privateFixture = structuredClone(demo); privateFixture.persons[0].notes = 'SECRET_SENTINEL';
@@ -76,7 +99,34 @@ try {
   await symlink(path.join(project, 'private/private-photo.png'), path.join(project, 'public/assets/photos/linked.png'));
   const linked = structuredClone(demo); linked.persons[0].portrait = { kind: 'original', path: 'assets/photos/linked.png' }; await save(linked);
   check('symlink to private photo cannot be published', () => command(buildFile, [], false));
-  await save(demo);
+  await mkdir(path.join(project,'public/assets/materials'),{recursive:true});
+  const bytesById = new Map([['check-photo',imageBytes],['check-text',textBytes],['check-pdf',pdfBytes],['check-document',docBytes]]);
+  for (const m of exampleMaterials) await writeFile(path.join(project,'public',m.path),bytesById.get(m.id));
+  await writeFile(path.join(project,'public/assets/materials/unreferenced.txt'),'PRIVATE_UNREFERENCED_SENTINEL');
+  await save(dossierFixture);
+  check('referenced dossier files build successfully',()=>command(buildFile));
+  const builtText = await readFile(path.join(project,'dist/assets/materials/check-text.txt'),'utf8');
+  let hasUnreferenced=true;try{await readFile(path.join(project,'dist/assets/materials/unreferenced.txt'));}catch(error){if(error.code==='ENOENT')hasUnreferenced=false;else throw error;}
+  check('build includes referenced bytes and excludes unreferenced files',()=>{assert.equal(builtText,textBytes.toString());assert.equal(hasUnreferenced,false);});
+  await writeFile(path.join(project,'public/assets/materials/check-text.txt'),'Changed after review');
+  check('changed file checksum prevents build',()=>command(buildFile,[],false));
+  const retained = JSON.parse(await readFile(path.join(project,'dist/tree.json'),'utf8'));
+  check('failed attachment build preserves previous dist',()=>assert.equal(retained.persons[0].dossier.materials.length,4));
+  await writeFile(path.join(project,'public/assets/materials/check-text.txt'),textBytes);
+  const missing = structuredClone(dossierFixture);missing.persons[0].dossier.materials[0].path='assets/materials/missing.png';await save(missing);
+  check('missing referenced attachment prevents build',()=>command(buildFile,[],false));
+  await symlink(path.join(project,'private/private-photo.png'),path.join(project,'public/assets/materials/linked.png'));
+  const linkedMaterial = structuredClone(dossierFixture);linkedMaterial.persons[0].dossier.materials[0].path='assets/materials/linked.png';await save(linkedMaterial);
+  check('symlink to private attachment cannot be published',()=>command(buildFile,[],false));
+  await save(dossierFixture);
+  const imported=path.join(scratch,'imported');
+  check('generator imports only referenced assets from explicit public root',()=>command(path.join(skill,'scripts/create-project.mjs'),['--out',imported,'--data',dataFile,'--assets-dir',path.join(project,'public')]));
+  const importedPhoto=await readFile(path.join(imported,'public/assets/materials/check-photo.png'));
+  let importedExtra=true;try{await readFile(path.join(imported,'public/assets/materials/unreferenced.txt'));}catch(error){if(error.code==='ENOENT')importedExtra=false;else throw error;}
+  check('asset import preserves original bytes and does not copy unrelated files',()=>{assert.deepEqual(importedPhoto,imageBytes);assert.equal(importedExtra,false);});
+  await save(linkedMaterial);
+  check('generator rejects symlink escape from assets root',()=>command(path.join(skill,'scripts/create-project.mjs'),['--out',path.join(scratch,'bad-import'),'--data',dataFile,'--assets-dir',path.join(project,'public')],false));
+  await save(dossierFixture);
   server = spawn(process.execPath, [path.join(project, 'scripts/serve.mjs'), '--port', '0'], { stdio: ['ignore', 'pipe', 'pipe'] });
   const address = await new Promise((resolve, reject) => {
     const timeout = setTimeout(() => reject(Error('Server startup timed out')), 5000);
@@ -85,6 +135,17 @@ try {
   });
   const responses = await Promise.all(['', 'tree.json', 'data/family.json', 'private/private-photo.png', 'scripts/model.mjs', 'licenses/Viewer-MIT.txt'].map(file => fetch(address + file)));
   check('server serves only built artifacts', () => assert.deepEqual(responses.map(r => r.status), [200, 200, 404, 404, 404, 200]));
+  const pdfResponse = await fetch(address+'assets/materials/check-pdf.pdf');
+  check('PDF is same-origin previewable with a known MIME',()=>{assert.equal(pdfResponse.status,200);assert.equal(pdfResponse.headers.get('content-type'),'application/pdf');assert.match(pdfResponse.headers.get('content-security-policy'),/frame-ancestors 'self'/);});
+  const downloadResponse = await fetch(address+'assets/materials/check-document.docx');
+  check('office documents are served only as downloads',()=>{assert.equal(downloadResponse.status,200);assert.match(downloadResponse.headers.get('content-disposition'),/^attachment;/);assert.equal(downloadResponse.headers.get('content-type'),'application/octet-stream');});
+  const rangeResponse = await fetch(address+'assets/materials/check-pdf.pdf',{headers:{Range:'bytes=0-4'}}), rangeBytes=Buffer.from(await rangeResponse.arrayBuffer());
+  check('media byte ranges preserve exact original content',()=>{assert.equal(rangeResponse.status,206);assert.equal(rangeBytes.toString(),'%PDF-');});
+  const attachmentResponse = await fetch(address+'assets/materials/check-photo.png?download=1');
+  check('original image can be explicitly downloaded',()=>assert.match(attachmentResponse.headers.get('content-disposition'),/^attachment;/));
+  const rejected = await Promise.all([fetch(address+'assets/materials/unreferenced.txt'),fetch(address+'assets/materials/check-text.txt',{method:'POST'})]);
+  const foreignStatus = await new Promise((resolve,reject)=>http.get(address,{headers:{Host:'external.example'}},response=>{response.resume();resolve(response.statusCode);}).on('error',reject));
+  check('static server does not expose extra files or accept writes and foreign hosts',()=>assert.deepEqual([...rejected.map(r=>r.status),foreignStatus],[404,405,403]));
   console.log(JSON.stringify({ ok: true, checks: count, fictionalOnly: true }));
 } finally {
   if (server && server.exitCode === null) { const ended = new Promise(resolve => server.once('exit', resolve)); server.kill(); await ended; }

@@ -1,4 +1,6 @@
 import path from 'node:path';
+import { materialPath, materialType } from './material-policy.mjs';
+export { materialPath, materialType } from './material-policy.mjs';
 
 export const CERTAINTIES = new Set(['documented', 'reported', 'hypothesis', 'unknown']);
 const IDENTIFIER = /^[a-zA-Z0-9_-]{1,80}$/;
@@ -39,6 +41,44 @@ export function publicEvidence(evidence = []) {
     conclusion: claim.conclusion ? { text: text(claim.conclusion.text), reasoning: text(claim.conclusion.reasoning), limitations: text(claim.conclusion.limitations) } : null,
   }));
 }
+const materialKinds = new Set(['photo', 'document', 'audio', 'video', 'other']);
+const materialText = ['description', 'date', 'sourceId', 'sourceLabel', 'sourceUrl', 'locator', 'rights', 'url', 'fileName', 'mediaType'];
+export function validateDossier(dossier, owner = 'person') {
+  if (dossier == null) return;
+  if (!record(dossier)) throw Error(`Досье должно быть объектом: ${owner}`);
+  for (const field of ['biography', 'activity']) if (dossier[field] != null && typeof dossier[field] !== 'string') throw Error(`Поле досье ${field} должно быть строкой: ${owner}`);
+  if (dossier.materials != null && !Array.isArray(dossier.materials)) throw Error(`Материалы должны быть массивом: ${owner}`);
+  const ids = new Set();
+  for (const material of dossier.materials || []) {
+    if (!record(material) || !IDENTIFIER.test(material.id) || ids.has(material.id) || !nonempty(material.title) || !materialKinds.has(material.kind)) throw Error(`Некорректный материал или повторный ID: ${owner}`);
+    ids.add(material.id);
+    for (const field of materialText) if (material[field] != null && typeof material[field] !== 'string') throw Error(`Поле материала ${field} должно быть строкой: ${material.id}`);
+    if (material.size != null && (!Number.isSafeInteger(material.size) || material.size < 0)) throw Error(`Некорректный размер материала: ${material.id}`);
+    if (material.sha256 != null && material.sha256 !== '' && (typeof material.sha256 !== 'string' || !/^[a-f0-9]{64}$/i.test(material.sha256))) throw Error(`Некорректная контрольная сумма материала: ${material.id}`);
+    if (material.path != null && material.path !== '') {
+      materialPath(material.path);
+      const type = materialType(material.path);
+      if (type.kind !== material.kind) throw Error(`Вид материала не совпадает с форматом файла: ${material.id}`);
+    }
+  }
+  validateEvidence(dossier.findings, `досье ${owner}`);
+}
+export function publicDossier(dossier = {}) {
+  return {
+    biography: text(dossier.biography), activity: text(dossier.activity),
+    materials: (dossier.materials || []).map(material => {
+      const type = material.path ? materialType(material.path) : null;
+      return {
+        id: material.id, title: material.title, kind: material.kind,
+        description: text(material.description), date: text(material.date), sourceId: text(material.sourceId),
+        sourceLabel: text(material.sourceLabel), sourceUrl: webLink(material.sourceUrl), locator: text(material.locator), rights: text(material.rights),
+        path: material.path ? materialPath(material.path) : null, url: webLink(material.url), fileName: text(material.fileName),
+        mediaType: type?.mediaType || '', preview: type?.preview || 'download', size: material.size ?? null, sha256: material.sha256?.toLowerCase() || '',
+      };
+    }),
+    findings: publicEvidence(dossier.findings || []),
+  };
+}
 function dateCaption(person, event) {
   const alternatives = person[event + 'YearCandidates'];
   const value = person[event + 'Date'] || (alternatives ? alternatives.join(' или ') : person[event + 'Year'] ? String(person[event + 'Year']) : '');
@@ -53,7 +93,7 @@ function dateBounds(person, event) {
   return [String(Math.min(...years)).padStart(4, '0') + '-01-01', String(Math.max(...years)).padStart(4, '0') + '-12-31'];
 }
 export function webLink(value) {
-  try { const u = new URL(value); return ['https:', 'http:'].includes(u.protocol) ? u.href : null; }
+  try { const u = new URL(value); return ['https:', 'http:'].includes(u.protocol) && !u.username && !u.password ? u.href : null; }
   catch { return null; }
 }
 export function photoPath(value) {
@@ -85,6 +125,7 @@ export function validateFamily(input) {
     if (p.portrait?.kind && !['none', 'original', 'generated', 'selected'].includes(p.portrait.kind)) throw Error('Неизвестное происхождение фотографии');
     if (p.portrait?.path) photoPath(p.portrait.path);
     validateEvidence(p.evidence, p.id);
+    validateDossier(p.dossier, p.id);
   }
   if (!known.has(input.rootPerson)) throw Error('rootPerson должен указывать на существующего человека');
   const recordIds = new Set();
@@ -132,6 +173,7 @@ export function publicFamily(raw) {
     sourceLabel: text(p.sourceLabel),
     sources: (Array.isArray(p.publicSources) ? p.publicSources : []).filter(s => s && webLink(s.url)).map(s => ({ label: text(s.label) || 'Источник', url: webLink(s.url) })),
     evidence: publicEvidence(p.evidence || []),
+    dossier: publicDossier(p.dossier || {}),
     photo: p.portrait?.path && p.portrait.kind && p.portrait.kind !== 'none' ? { path: photoPath(p.portrait.path), kind: p.portrait.kind } : null,
   }));
   const families = (raw.families || []).map(f => ({ id: f.id, adults: f.parents || f.partners, children: f.children || [], type: f.relationshipType || 'parent-child', confidence: f.confidence || 'unknown', label: text(f.label) }));

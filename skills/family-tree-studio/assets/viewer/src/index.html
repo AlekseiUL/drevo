@@ -8,7 +8,9 @@
   <title>Древо</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%23315c46'/%3E%3Cpath d='M16 27V12M16 19C6 19 5 11 7 6C15 6 18 12 16 19ZM16 14C16 7 22 4 27 5C27 12 22 16 16 14Z' fill='%23dce8bc'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="feedback.css">
   <script type="module" src="app.js"></script>
+  <script type="module" src="feedback.js"></script>
 </head>
 <body>
   <div class="botanical" aria-hidden="true">
@@ -685,7 +687,7 @@
   </footer>
   <div class="legend"><i></i> По документу <i class="reported"></i> Со слов <i class="hypothesis"></i> Гипотеза</div>
   <button id="map-button" aria-label="Обзор дерева. Нажмите, чтобы переместиться."><svg id="mini-map" aria-hidden="true"></svg><span>Крона целиком</span></button>
-  <dialog id="guide"><button id="close-guide" class="round-button" aria-label="Закрыть справку">×</button><span class="eyebrow">КАК ЧИТАТЬ ДРЕВО</span><h2>Каждая ветвь — связь.<br>У каждой связи — основание.</h2><p>Нажмите на лист с именем, чтобы открыть историю, фотографии, документы и находки. Во вкладке «Материалы» можно рассмотреть файл и узнать его происхождение. В локальном семейном деле доступны редактирование описания и прикрепление файлов. Перетащите свободное место для перемещения. Ctrl или ⌘ вместе с колесом меняют масштаб; на телефоне используйте кнопки масштаба.</p><p>Пунктирная охристая ветвь — гипотеза. Подсветка пути не доказывает родство. Опека исключена из линий предков и потомков, усыновление помечено отдельно.</p><p>Фоновые листья и ствол служат украшением. Реальные связи рисуются только между карточками. Отсутствие фото не означает отсутствие сведений; серый цвет не означает смерть.</p><p id="demo-explanation"></p><a href="licenses/Viewer-MIT.txt" target="_blank" rel="noopener noreferrer">Код: MIT</a> · <a href="licenses/Golos-OFL.txt" target="_blank" rel="noopener noreferrer">Golos Text</a> · <a href="licenses/Lucide.txt" target="_blank" rel="noopener noreferrer">Lucide</a></dialog>
+  <dialog id="guide"><button id="close-guide" class="round-button" aria-label="Закрыть справку">×</button><span class="eyebrow">КАК ЧИТАТЬ ДРЕВО</span><h2>Каждая ветвь — связь.<br>У каждой связи — основание.</h2><p>Нажмите на лист с именем, чтобы открыть историю, фотографии, документы и находки. Во вкладке «Материалы» можно рассмотреть файл и узнать его происхождение. В локальном семейном деле доступны редактирование описания и прикрепление файлов. Перетащите свободное место для перемещения. Ctrl или ⌘ вместе с колесом меняют масштаб; на телефоне двигайте дерево одним пальцем и меняйте масштаб двумя. Кнопка «Всё древо» показывает все поколения.</p><p>Пунктирная охристая ветвь — гипотеза. Подсветка пути не доказывает родство. Опека исключена из линий предков и потомков, усыновление помечено отдельно.</p><p>Фоновые листья и ствол служат украшением. Реальные связи рисуются только между карточками. Отсутствие фото не означает отсутствие сведений; серый цвет не означает смерть.</p><p id="demo-explanation"></p><a href="licenses/Viewer-MIT.txt" target="_blank" rel="noopener noreferrer">Код: MIT</a> · <a href="licenses/Golos-OFL.txt" target="_blank" rel="noopener noreferrer">Golos Text</a> · <a href="licenses/Lucide.txt" target="_blank" rel="noopener noreferrer">Lucide</a></dialog>
   <div id="error" role="alert" hidden></div>
   <noscript>Для интерактивного дерева нужен JavaScript.</noscript>
 </body>

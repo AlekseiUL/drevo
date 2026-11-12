@@ -4,12 +4,18 @@ import { readFile, realpath } from 'node:fs/promises';
 import { build, projectRoot } from './build.mjs';
 import { contained } from './model.mjs';
 import { materialPath, materialType, materialDisposition } from './material-policy.mjs';
+import { feedbackConfig } from '../src/feedback.js';
 
 const index = process.argv.indexOf('--port');
 const port = index < 0 ? 4173 : Number(process.argv[index + 1]);
 if (!Number.isInteger(port) || port < 0 || port > 65535) throw Error('Неверный номер порта');
 if (!process.argv.includes('--preview')) await build();
 const folder = await realpath(path.join(projectRoot, 'dist'));
+let feedbackConnect = '';
+try {
+  const config = feedbackConfig(JSON.parse(await readFile(path.join(folder, 'feedback-config.json'), 'utf8')));
+  if (config) feedbackConnect = ' ' + new URL(config.endpoint).origin;
+} catch { /* Feedback is optional and disabled without a valid configuration. */ }
 const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json', '.ttf': 'font/ttf', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.avif': 'image/avif', '.txt': 'text/plain; charset=utf-8' };
 const server = http.createServer(async (req, res) => {
   const localPort = server.address()?.port;
@@ -26,7 +32,7 @@ const server = http.createServer(async (req, res) => {
     const content = await readFile(file);
     const headers = {
       'Content-Type': material?.mediaType || types[path.extname(file)], 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'no-referrer',
-      'Content-Security-Policy': `default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; media-src 'self'; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors ${material ? "'self'" : "'none'"}`,
+      'Content-Security-Policy': `default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'${feedbackConnect}; media-src 'self'; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors ${material ? "'self'" : "'none'"}`,
       'Accept-Ranges': 'bytes',
     };
     if (material) headers['Content-Disposition'] = materialDisposition(path.basename(relative), material.preview === 'download' || url.searchParams.get('download') === '1');

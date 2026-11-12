@@ -1,0 +1,23 @@
+.heading .feedback-open{pointer-events:auto;margin-top:7px;display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:10px 16px;border:1px solid #a9bea0;border-radius:12px;background:#edf3e5;color:#315c46;font:500 12px/1.4 Golos,system-ui,sans-serif;box-shadow:0 3px 14px #49603708}
+.feedback-open:hover{background:#e1ecd6;border-color:#809d70}.feedback-open:focus-visible{outline:3px solid #c29a52;outline-offset:3px}
+.feedback-person-open{display:block;width:100%;min-height:44px;border:1px solid #a9bea0;border-radius:12px;background:#edf3e5;color:#315c46;font-size:12px;line-height:1.5;padding:11px 14px;margin:0 0 22px}
+.feedback-dialog{position:fixed;inset:20px;margin:auto;width:min(620px,calc(100vw - 40px));max-width:none;max-height:calc(100dvh - 40px);border:1px solid #cdd9bf;border-radius:24px 8px 24px 8px;background:#fffdf5;color:#354c38;padding:0;box-shadow:0 25px 90px #263d3429;overflow:auto;overscroll-behavior:contain}
+.feedback-dialog::backdrop{background:#263c3159;backdrop-filter:blur(3px)}
+.feedback-header{position:sticky;top:0;z-index:1;background:#fffdf5f5;border-bottom:1px solid #e3e9d9;padding:25px 28px 19px;backdrop-filter:blur(10px)}
+.feedback-header h2{font-size:25px;font-weight:500;line-height:1.3;margin:0 48px 11px 0;letter-spacing:-.4px}.feedback-header p{font-size:12px;line-height:1.7;color:#718167;margin:0;max-width:48em}
+.feedback-close{position:absolute;right:12px;top:12px;min-width:44px;min-height:44px;border:1px solid #d9e0cf;border-radius:50%;background:#fbfcf4;color:#526a44;font-size:23px;line-height:1}
+.feedback-form{display:block;padding:23px 28px 26px}.feedback-field{margin-bottom:18px}.feedback-field label{display:block;font-size:12px;font-weight:500;line-height:1.6;color:#526b47;margin-bottom:7px}
+.feedback-field input,.feedback-field textarea,.feedback-field select{display:block;width:100%;max-width:100%;min-width:0;min-height:44px;border:1px solid #cad8bc;border-radius:10px;background:#fffef9;color:#354c38;font:400 14px/1.6 Golos,system-ui,sans-serif;padding:10px 12px;box-sizing:border-box}
+.feedback-field textarea{resize:vertical;min-height:150px}.feedback-field input::placeholder,.feedback-field textarea::placeholder{color:#8b957f}.feedback-field :disabled{opacity:.7}
+.feedback-field input:focus-visible,.feedback-field textarea:focus-visible,.feedback-field select:focus-visible{outline:3px solid #c29a52;outline-offset:2px}
+.feedback-actions{display:flex;gap:12px;flex-wrap:wrap}.feedback-submit,.feedback-cancel{display:inline-flex;align-items:center;justify-content:center;min-height:44px;border:1px solid #365f42;border-radius:11px;padding:11px 24px;font:500 13px/1.5 Golos,system-ui,sans-serif;cursor:pointer}.feedback-submit{background:#365f42;color:#fffdf1}.feedback-submit:hover{background:#294e35}.feedback-cancel{border-color:#d0ddc3;background:#f8fbf2;color:#557148}.feedback-actions button:disabled,.feedback-close:disabled{opacity:.55;cursor:wait}
+.feedback-status{font-size:13px;line-height:1.7;background:#edf3e3;border-radius:11px;padding:12px 14px;margin:0 0 18px;color:#516e41;overflow-wrap:anywhere}.feedback-status.failed{background:#f8ecdf;color:#845e35}.feedback-status.success{background:#e8f3e1;color:#315b35}
+.feedback-privacy{font-size:11px;line-height:1.8;color:#7b8b6f;margin:18px 0 0}.feedback-privacy a{text-decoration:underline;text-underline-offset:2px}
+.feedback-honey{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;pointer-events:none}
+@media(max-width:800px),(max-width:950px) and (max-height:500px){
+ .heading .feedback-open{margin-top:5px;min-height:44px;padding:8px 12px;font-size:12px}
+ .feedback-dialog{inset:8px;margin:auto;width:calc(100vw - 16px);max-height:calc(100dvh - 16px);border-radius:18px 6px 18px 6px}
+ .feedback-header{padding:calc(20px + env(safe-area-inset-top)) 18px 15px}.feedback-header h2{font-size:22px}.feedback-header p{font-size:12px}.feedback-close{top:calc(10px + env(safe-area-inset-top));right:9px}
+ .feedback-form{padding:18px 18px calc(22px + env(safe-area-inset-bottom))}.feedback-field input,.feedback-field textarea,.feedback-field select{font-size:16px}.feedback-field label{font-size:13px}
+ .feedback-actions>*{flex:1;min-width:100px}.feedback-privacy{font-size:11px}.feedback-person-open{font-size:13px}
+}

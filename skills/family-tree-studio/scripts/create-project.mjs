@@ -41,7 +41,7 @@ let contents = [];
 try { contents = await readdir(destination); } catch (error) { if (error.code !== 'ENOENT') throw error; }
 if (contents.length) throw Error('Папка не пуста: существующие файлы не перезаписываются');
 await mkdir(destination, { recursive: true });
-for (const entry of ['src', 'scripts', 'package.json', 'LICENSE', '.gitignore']) await cp(path.join(template, entry), path.join(destination, entry), { recursive: true });
+for (const entry of ['src', 'scripts', 'package.json', 'README.md', 'LICENSE', '.gitignore']) await cp(path.join(template, entry), path.join(destination, entry), { recursive: true });
 for (const dir of ['fonts', 'icons']) await cp(path.join(template, 'public/assets', dir), path.join(destination, 'public/assets', dir), { recursive: true });
 for (const [asset, bytes] of assetBytes) { await mkdir(path.dirname(path.join(destination, 'public', asset)), { recursive: true }); await writeFile(path.join(destination, 'public', asset), bytes); }
 await mkdir(path.join(destination, 'data')); await mkdir(path.join(destination, 'private/originals'), { recursive: true });

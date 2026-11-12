@@ -61,11 +61,16 @@ export function validateDossier(dossier, owner = 'person') {
       if (type.kind !== material.kind) throw Error(`Вид материала не совпадает с форматом файла: ${material.id}`);
     }
   }
+  if (dossier.portraitMaterialId!=null) {
+    if (typeof dossier.portraitMaterialId!=='string' || !IDENTIFIER.test(dossier.portraitMaterialId)) throw Error(`Некорректный ID портрета: ${owner}`);
+    const selected=(dossier.materials || []).find(m=>m.id===dossier.portraitMaterialId);
+    if (!selected?.path || selected.kind!=='photo' || materialType(selected.path).kind!=='photo') throw Error(`Портрет должен ссылаться на изображение из материалов этого человека: ${owner}`);
+  }
   validateEvidence(dossier.findings, `досье ${owner}`);
 }
 export function publicDossier(dossier = {}) {
   return {
-    biography: text(dossier.biography), activity: text(dossier.activity),
+    biography: text(dossier.biography), activity: text(dossier.activity), portraitMaterialId: dossier.portraitMaterialId || null,
     materials: (dossier.materials || []).map(material => {
       const type = material.path ? materialType(material.path) : null;
       return {
@@ -99,6 +104,10 @@ export function webLink(value) {
 export function photoPath(value) {
   if (typeof value !== 'string' || !/^assets\/photos\/[a-zA-Z0-9_./-]+\.(png|jpe?g|webp|avif)$/i.test(value) || value.split('/').some(part => part === '..' || part === '.')) throw Error('Фотография должна быть локальным растровым файлом внутри public/assets/photos/');
   return value;
+}
+function dossierPortrait(person) {
+  const selected=(person.dossier?.materials || []).find(m=>m.id===person.dossier?.portraitMaterialId);
+  return selected ? {path:materialPath(selected.path),kind:'selected'} : null;
 }
 export function validateFamily(input) {
   if (!input || !Array.isArray(input.persons) || !input.persons.length) throw Error('Нужен массив persons хотя бы с одним человеком');
@@ -174,7 +183,7 @@ export function publicFamily(raw) {
     sources: (Array.isArray(p.publicSources) ? p.publicSources : []).filter(s => s && webLink(s.url)).map(s => ({ label: text(s.label) || 'Источник', url: webLink(s.url) })),
     evidence: publicEvidence(p.evidence || []),
     dossier: publicDossier(p.dossier || {}),
-    photo: p.portrait?.path && p.portrait.kind && p.portrait.kind !== 'none' ? { path: photoPath(p.portrait.path), kind: p.portrait.kind } : null,
+    photo: dossierPortrait(p) || (p.portrait?.path && p.portrait.kind && p.portrait.kind !== 'none' ? { path: photoPath(p.portrait.path), kind: p.portrait.kind } : null),
   }));
   const families = (raw.families || []).map(f => ({ id: f.id, adults: f.parents || f.partners, children: f.children || [], type: f.relationshipType || 'parent-child', confidence: f.confidence || 'unknown', label: text(f.label) }));
   const siblings = (raw.relationships || []).map(r => ({ id: r.id, a: r.a, b: r.b, type: 'sibling', confidence: r.confidence || 'unknown' }));
@@ -196,39 +205,6 @@ export function publicFamily(raw) {
   return { title: text(raw.title) || 'Семейное древо', demo: raw.demo === true, rootPerson: raw.rootPerson, persons, families, edges };
 }
 
-export function layoutFamily(model) {
-  const groups = new Map(model.persons.map(p => [p.id, p.id]));
-  const combine = ids => {
-    const labels = new Set(ids.map(id => groups.get(id)));
-    for (const [id, group] of groups) if (labels.has(group)) groups.set(id, groups.get(ids[0]));
-  };
-  for (const f of model.families) combine(f.adults);
-  for (const e of model.edges) if (['sibling', 'partner'].includes(e.type)) combine([e.a, e.b]);
-  // Align co-parents for layout only; do not invent a partnership edge between them.
-  const coParents = new Map();
-  for (const edge of model.edges) if (['parent-child', 'adoptive'].includes(edge.type)) { if (!coParents.has(edge.b)) coParents.set(edge.b, []); coParents.get(edge.b).push(edge.a); }
-  for (const ids of coParents.values()) combine(ids);
-  const levels = new Map([...groups.values()].map(id => [id, 0]));
-  const vertical = model.edges.filter(e => !['sibling', 'partner'].includes(e.type));
-  for (const e of vertical) if (groups.get(e.a) === groups.get(e.b)) throw Error('Родительская связь конфликтует с одним поколением');
-  for (let step = 0; step <= levels.size; step++) {
-    let changed = false;
-    for (const e of vertical) {
-      const a = groups.get(e.a), b = groups.get(e.b), needed = levels.get(a) + 1;
-      if (levels.get(b) < needed) { levels.set(b, needed); changed = true; }
-    }
-    if (!changed) break;
-    if (step === levels.size) throw Error('Обнаружен цикл родительских связей');
-  }
-  const rows = new Map();
-  for (const p of model.persons) { const level = levels.get(groups.get(p.id)); if (!rows.has(level)) rows.set(level, []); rows.get(level).push(p); }
-  const box = { width: 230, height: 170 }, horizontal = 296, verticalGap = 310;
-  const width = Math.max(950, ...[...rows.values()].map(row => row.length * horizontal + 180));
-  for (const [level, row] of rows) {
-    row.sort((a, b) => groups.get(a.id).localeCompare(groups.get(b.id)) || a.id.localeCompare(b.id));
-    row.forEach((p, index) => { p.x = (width - row.length * horizontal) / 2 + index * horizontal + 33; p.y = 140 + level * verticalGap; });
-  }
-  return { ...model, width, height: 140 + Math.max(...rows.keys()) * verticalGap + box.height + 220, box };
-}
+export { layoutFamily } from './layout.mjs';
 
 export function contained(base, file) { return file.startsWith(path.resolve(base) + path.sep); }

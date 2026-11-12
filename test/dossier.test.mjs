@@ -9,6 +9,7 @@ import { startDossierServer } from '../lib/dossier-server.mjs';
 import { projectCase } from '../lib/projection.mjs';
 import { previewTree, applyTree } from '../lib/tree-store.mjs';
 import { materialType } from '../skills/family-tree-studio/assets/viewer/scripts/material-policy.mjs';
+import { publicFamily, validateFamily } from '../skills/family-tree-studio/assets/viewer/scripts/model.mjs';
 const fixture=async()=>({data:JSON.parse(await readFile(new URL('../templates/case.example.json',import.meta.url),'utf8')),packet:JSON.parse(await readFile(new URL('../templates/evidence.example.json',import.meta.url),'utf8'))});
 const hash=b=>createHash('sha256').update(b).digest('hex');
 async function setup(t){
@@ -24,6 +25,12 @@ async function storedMaterial(dir,id='scan'){
  const bytes=Buffer.from('Синтетическая расшифровка\n'),file={path:`originals/dossier/${id}.txt`,name:'Учебная запись.txt',mediaType:materialType('x.txt').mediaType,size:bytes.length,sha256:hash(bytes)};
  await mkdir(path.join(dir,'originals/dossier'),{recursive:true});await writeFile(path.join(dir,file.path),bytes);
  return {id,title:'Учебный документ',description:'Только пример',rights:'MIT — учебный авторский текст',file};
+}
+async function storedImage(dir,id='cover'){
+ const bytes=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aY9sAAAAASUVORK5CYII=','base64');
+ const file={path:`originals/dossier/${id}.png`,name:'Учебный пиксель.png',mediaType:'image/png',size:bytes.length,sha256:hash(bytes)};
+ await mkdir(path.join(dir,'originals/dossier'),{recursive:true});await writeFile(path.join(dir,file.path),bytes);
+ return {id,title:'Синтетическое изображение',rights:'Авторский учебный пример',file};
 }
 test('dossier API saves biography/activity, backs up exact prior JSON, and survives server restart',async t=>{
  const s=await setup(t),before=await readFile(path.join(s.dir,'case.json'),'utf8');
@@ -102,4 +109,78 @@ test('edited public prose and captions become private without changing original 
  await s.post('api/people/vera/materials/scan',{title:'Новая подпись'});
  const d=JSON.parse(await readFile(path.join(s.dir,'case.json'),'utf8')).people[0].dossier;
  assert.equal(d.visibility,'private');assert.equal(d.materials[0].visibility,'private');assert.equal(d.materials[0].fileVisibility,'public');
+});
+
+test('a portrait requires explicit selection of an image belonging to that person',async t=>{
+ const s=await setup(t),image=await storedImage(s.dir),document=await storedMaterial(s.dir);
+ const owner=s.data.people[0];owner.dossier={materials:[image,document]};
+ assert.equal(publicFamily(projectCase(s.data,s.packet).family).persons[0].photo,null);
+ owner.dossier.portraitMaterialId=image.id;
+ const family=projectCase(s.data,s.packet).family;
+ assert.deepEqual(publicFamily(family).persons[0].photo,{path:'assets/materials/cover.png',kind:'selected'});
+ for(const bad of ['missing',document.id,'../cover',42]){
+   owner.dossier.portraitMaterialId=bad;assert.throws(()=>projectCase(s.data,s.packet),/портрет|portraitMaterialId/);
+ }
+ owner.dossier.portraitMaterialId=image.id;
+ s.data.people[1].dossier={portraitMaterialId:image.id,materials:[]};assert.throws(()=>projectCase(s.data,s.packet),/этого человека/);
+ const malformed=structuredClone(family);malformed.persons[0].dossier.portraitMaterialId=document.id;assert.throws(()=>validateFamily(malformed),/изображение/);
+});
+
+test('portrait publication obeys caption, file, rights and source permissions independently',async t=>{
+ const s=await setup(t),image=await storedImage(s.dir);image.sourceId='demo-interview';
+ s.data.people[0].dossier={portraitMaterialId:image.id,materials:[image]};
+ const projected=()=>publicFamily(projectCase(s.data,s.packet,{public:true}).family).persons[0];
+ assert.equal(projected().photo,null);
+ image.visibility='public';assert.equal(projected().photo,null);assert.equal(projected().dossier.portraitMaterialId,null);
+ image.fileVisibility='public';assert.equal(projected().photo.path,'assets/materials/cover.png');
+ image.rights='';assert.equal(projected().photo,null);image.rights='Учебный пример';
+ s.packet.sources[0].visibility='private';assert.equal(projected().photo,null);assert.equal(projected().dossier.portraitMaterialId,null);
+ s.packet.sources[0].visibility='public';image.visibility='private';assert.equal(projected().photo,null);
+});
+
+test('selection survives text and caption edits, while removing its material clears the cover and retains bytes',async t=>{
+ const s=await setup(t),image=await storedImage(s.dir);s.data.people[0].dossier={portraitMaterialId:image.id,materials:[image]};
+ await writeFile(path.join(s.dir,'case.json'),JSON.stringify(s.data));await s.restart();
+ assert.equal(s.session.people[0].dossier.portraitMaterialId,'cover');
+ const edit=await s.post('api/people/vera/dossier',{biography:'Новый текст',activity:''});
+ assert.equal(edit.response.status,200);assert.equal(edit.json.tree.persons[0].photo.path,'assets/materials/cover.png');
+ const caption=await s.post('api/people/vera/materials/cover',{title:'Новая подпись'});
+ assert.equal(caption.response.status,200);assert.equal(caption.json.tree.persons[0].dossier.portraitMaterialId,'cover');
+ assert.equal(caption.json.tree.persons[0].photo.path,'assets/materials/cover.png');
+ const remove=await s.post('api/people/vera/materials/cover/remove',{});
+ assert.equal(remove.response.status,200);assert.equal(remove.json.tree.persons[0].photo,null);assert.equal(remove.json.tree.persons[0].dossier.portraitMaterialId,null);
+ const stored=JSON.parse(await readFile(path.join(s.dir,'case.json'),'utf8')).people[0].dossier;
+ assert.equal(stored.portraitMaterialId,null);assert.equal(hash(await readFile(path.join(s.dir,image.file.path))),image.file.sha256);
+});
+
+test('portrait selection can be set and cleared explicitly but cannot select another person material',async t=>{
+ const s=await setup(t),image=await storedImage(s.dir),other=await storedImage(s.dir,'other-cover');
+ s.data.people[0].dossier={materials:[image]};s.data.people[1].dossier={materials:[other]};
+ await writeFile(path.join(s.dir,'case.json'),JSON.stringify(s.data));await s.restart();
+ const chosen=await s.post('api/people/vera/dossier',{biography:'',activity:'',portraitMaterialId:'cover'});
+ assert.equal(chosen.response.status,200);assert.equal(chosen.json.tree.persons[0].photo.path,'assets/materials/cover.png');
+ const invalid=await s.post('api/people/vera/dossier',{biography:'',activity:'',portraitMaterialId:'other-cover'});assert.equal(invalid.response.status,422);
+ const cleared=await s.post('api/people/vera/dossier',{biography:'',activity:'',portraitMaterialId:null});assert.equal(cleared.response.status,200);assert.equal(cleared.json.tree.persons[0].photo,null);
+});
+
+test('selected portraits use the material asset pipeline and never escape into a public build without approval',async t=>{
+ const s=await setup(t),image=await storedImage(s.dir);s.data.people[0].dossier={portraitMaterialId:image.id,materials:[image]};
+ await writeFile(path.join(s.dir,'case.json'),JSON.stringify(s.data));
+ await previewTree(s.dir);const privateBuild=await applyTree(s.dir);
+ const model=JSON.parse(await readFile(path.join(privateBuild.viewerDir,'dist/tree.json'),'utf8'));
+ assert.equal(model.persons[0].photo.path,'assets/materials/cover.png');assert.equal(hash(await readFile(path.join(privateBuild.viewerDir,'dist',model.persons[0].photo.path))),image.file.sha256);
+ await previewTree(s.dir,{public:true});const publicBuild=await applyTree(s.dir);
+ const publicModel=JSON.parse(await readFile(path.join(publicBuild.viewerDir,'dist/tree.json'),'utf8'));assert.equal(publicModel.persons[0].photo,null);
+ await assert.rejects(readFile(path.join(publicBuild.viewerDir,'dist/assets/materials/cover.png')),/ENOENT/);
+});
+
+test('missing, changed or falsely labelled portrait bytes cannot reach a preview or live model',async t=>{
+ const s=await setup(t),image=await storedImage(s.dir);s.data.people[0].dossier={portraitMaterialId:image.id,materials:[image]};
+ await writeFile(path.join(s.dir,'case.json'),JSON.stringify(s.data));
+ await rm(path.join(s.dir,image.file.path));await assert.rejects(previewTree(s.dir),/ENOENT/);
+ const invalid=Buffer.from('<html>not a raster image</html>');await writeFile(path.join(s.dir,image.file.path),invalid);
+ await assert.rejects(previewTree(s.dir),/Размер|сумма/);
+ image.file.size=invalid.length;image.file.sha256=hash(invalid);await writeFile(path.join(s.dir,'case.json'),JSON.stringify(s.data));
+ await assert.rejects(previewTree(s.dir),/не соответствует формату/);
+ const live=await fetch(s.app.url+'tree.json');assert.equal(live.status,422);assert.match((await live.json()).error,/не соответствует формату/);
 });

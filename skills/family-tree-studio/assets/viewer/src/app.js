@@ -1,9 +1,12 @@
 const byId = id => document.getElementById(id);
 const svgNS = 'http://www.w3.org/2000/svg';
+const compactViewport = () => innerWidth <= 800 || (innerWidth <= 950 && innerHeight <= 500);
 const basis = { documented: 'по документу', reported: 'со слов семьи', hypothesis: 'гипотеза', unknown: 'основание не указано' };
 const kinds = { 'parent-child': 'Родительская связь', adoptive: 'Усыновление / удочерение', guardian: 'Опека', partner: 'Партнёры', sibling: 'Брат / сестра' };
 const state = { zoom: 1, left: 0, top: 0, selected: null, mode: 'near', target: null, people: [], edges: [], path: [], dossierTab: 'overview' };
-let model, people, cards = new Map(), lines = new Map(), drag = null, overview = true;
+let model, people, cards = new Map(), lines = new Map(), overview = true;
+const pointers = new Map();
+let gesture = null, suppressTreeClickUntil = 0;
 let previousViewport = { width: innerWidth, height: innerHeight };
 const folded = value => value.toLowerCase().normalize('NFKC').replace(/ё/g, 'е');
 function node(tag, value, className) { const n = document.createElement(tag); if (value != null) n.textContent = value; if (className) n.className = className; return n; }
@@ -84,11 +87,23 @@ function branchShape(e) {
     return `M${ax} ${a.y} C${ax} ${y - lift} ${bx} ${y - lift} ${bx} ${b.y}`;
   }
   const x1 = a.x + w / 2, y1 = a.y + h, x2 = b.x + w / 2, y2 = b.y;
-  return `M${x1} ${y1} C${x1} ${y1 + (y2 - y1) * .6} ${x2} ${y2 - (y2 - y1) * .6} ${x2} ${y2}`;
+  if (e.type === 'guardian' || y2 <= y1) return `M${x1} ${y1} C${x1} ${y1 + 65} ${x2} ${y2 - 65} ${x2} ${y2}`;
+  const middle = model.connectionRoutes?.[e.id]?.viaY ?? (y1 + y2) / 2, direction = Math.sign(x2 - x1), radius = Math.min(12, Math.abs(x2 - x1) / 2);
+  return `M${x1} ${y1} V${middle - radius} Q${x1} ${middle} ${x1 + direction * radius} ${middle} H${x2 - direction * radius} Q${x2} ${middle} ${x2} ${middle + radius} V${y2}`;
 }
 function drawFamily() {
   byId('world').style.width = model.width + 'px'; byId('world').style.height = model.height + 'px';
   byId('branches').setAttribute('width', model.width); byId('branches').setAttribute('height', model.height);
+  for (const row of model.generationRows || []) {
+    byId('branches').append(vector('line', { x1: row.x, x2: row.endX, y1: row.y - 55, y2: row.y - 55, class: 'generation-rule', 'aria-hidden': true }));
+    const caption = vector('text', { x: row.x, y: row.y + 20, class: 'generation-caption', 'aria-hidden': true });
+    caption.textContent = row.title; byId('branches').append(caption);
+  }
+  for (const zone of model.layoutZones || []) {
+    byId('branches').append(vector('rect', { x: zone.x, y: zone.y, width: zone.width, height: zone.height, rx: 24, class: 'records-zone', 'aria-hidden': true }));
+    const caption = vector('text', { x: zone.x + 24, y: zone.y + 34, class: 'generation-caption', 'aria-hidden': true });
+    caption.textContent = zone.title; byId('branches').append(caption);
+  }
   const connected = new Set(model.edges.flatMap(e => [e.a, e.b]));
   for (const e of model.edges) {
     const line = vector('path', { d: branchShape(e), class: 'branch ' + e.confidence + (openConflicts(e).length ? ' has-conflict' : ''), 'data-connection-line': e.id, 'aria-hidden': true });
@@ -100,12 +115,12 @@ function drawFamily() {
   }
   const labels = new Set();
   for (const e of model.edges) {
-    const group = e.family || e.id;
+    const group = e.family || (['parent-child', 'adoptive'].includes(e.type) ? [e.a, e.type, e.confidence, openConflicts(e).length > 0].join(':') : e.id);
     if (labels.has(group)) continue; labels.add(group);
     const a = people.get(e.a), b = people.get(e.b), family = model.families.find(f => f.id === e.family);
     const participants = family ? family.adults.map(id => people.get(id)) : [a, b];
     const x = participants.reduce((sum, p) => sum + p.x + model.box.width / 2, 0) / participants.length;
-    const y = ['sibling', 'partner'].includes(e.type) ? Math.min(a.y, b.y) - 44 : a.y + model.box.height + 58;
+    const y = ['sibling', 'partner'].includes(e.type) ? Math.min(a.y, b.y) - 44 : a.y + model.box.height + 25;
     const label = vector('text', { x, y, 'text-anchor': 'middle', class: 'branch-label', 'aria-hidden': true });
     label.textContent = openConflicts(e).length ? 'Есть противоречие' : e.family ? relationTitle(e) : `${e.type === 'guardian' || e.type === 'adoptive' ? kinds[e.type] + ' · ' : ''}${basis[e.confidence]}`; byId('branches').append(label);
   }
@@ -135,20 +150,29 @@ function scaleTo(value, x = innerWidth / 2, y = innerHeight / 2) {
   const next = Math.min(2.1, Math.max(.15, value)), factor = next / state.zoom;
   state.left = x - (x - state.left) * factor; state.top = y - (y - state.top) * factor; state.zoom = next; paintCamera();
 }
+function treeViewport() {
+  if (!compactViewport()) return { left: 25, right: innerWidth - 25, top: 190, bottom: Math.max(240, innerHeight - 120) };
+  const heading = document.querySelector('.heading').getBoundingClientRect();
+  const tools = document.querySelector('.tools').getBoundingClientRect();
+  const top = Math.max(innerHeight <= 500 ? 80 : 150, heading.bottom + 16), bottom = Math.max(top + 170, tools.top - 30);
+  return { left: 14, right: innerWidth - 14, top, bottom };
+}
 function fit() {
   overview = true;
-  const left = Math.min(...model.persons.map(p => p.x)) - 24, right = Math.max(...model.persons.map(p => p.x + model.box.width)) + 24;
+  const left = Math.min(...model.persons.map(p => p.x), ...(model.generationRows || []).map(row => row.x)) - 24, right = Math.max(...model.persons.map(p => p.x + model.box.width)) + 24;
   const top = Math.min(...model.persons.map(p => p.y)) - 65, bottom = Math.max(...model.persons.map(p => p.y + model.box.height)) + 25;
-  const roomWidth = innerWidth - 50, roomHeight = innerHeight - 310;
+  const viewport = treeViewport(), roomWidth = viewport.right - viewport.left, roomHeight = viewport.bottom - viewport.top;
   state.zoom = Math.min(1.1, roomWidth / (right - left), roomHeight / (bottom - top));
-  state.left = (innerWidth - (right - left) * state.zoom) / 2 - left * state.zoom;
-  state.top = 190 + (roomHeight - (bottom - top) * state.zoom) / 2 - top * state.zoom; paintCamera();
+  state.left = viewport.left + (roomWidth - (right - left) * state.zoom) / 2 - left * state.zoom;
+  state.top = viewport.top + (roomHeight - (bottom - top) * state.zoom) / 2 - top * state.zoom; paintCamera();
 }
 function center(id, zoom = Math.max(state.zoom, .8)) {
   overview = false;
   const p = people.get(id); state.zoom = zoom;
-  const x = state.selected && innerWidth > 800 ? (innerWidth - 470) / 2 : innerWidth / 2;
-  state.left = x - (p.x + model.box.width / 2) * zoom; state.top = innerHeight * .52 - (p.y + model.box.height / 2) * zoom; paintCamera();
+  const x = state.selected && !compactViewport() ? (innerWidth - 470) / 2 : innerWidth / 2;
+  const viewport = treeViewport();
+  const y = compactViewport() ? Math.max(viewport.top + model.box.height * zoom / 2, viewport.bottom - model.box.height * zoom / 2 - 16) : innerHeight * .52;
+  state.left = x - (p.x + model.box.width / 2) * zoom; state.top = y - (p.y + model.box.height / 2) * zoom; paintCamera();
 }
 function route(start, finish, hypotheses = false) {
   const pending = [{ id: start, nodes: [start], links: [] }], seen = new Set([start]);
@@ -414,20 +438,34 @@ function renderRelations(p, body) {
     for (const e of nearby) { const id = e.a === p.id ? e.b : e.a, row = node('div', null, 'relation-row'), button = node('button', people.get(id).name, 'related-person'); button.append(node('small', relationTitle(e))); button.onclick = () => { choose(id); center(id); }; row.append(button); if (openConflicts(e).length) row.append(node('p', 'Есть открытое противоречие', 'conflict-label')); row.append(evidenceButton(e)); body.append(row); }
   }
 }
-function choose(id) { if (state.selected !== id) { state.dossierTab = 'overview'; materialFilter = 'all'; } state.selected = id; byId('details').hidden = false; selection(); const q = new URLSearchParams({ person: id }); history.replaceState(null, '', '#' + q); }
-function closeDetails() { state.selected = null; byId('details').hidden = true; selection(); history.replaceState(null, '', location.pathname); }
+function syncPersonSheet() {
+  const details = byId('details');
+  if (state.selected && compactViewport()) { details.setAttribute('role', 'dialog'); details.setAttribute('aria-modal', 'true'); }
+  else { details.removeAttribute('role'); details.removeAttribute('aria-modal'); }
+}
+function choose(id) {
+  if (state.selected !== id) { state.dossierTab = 'overview'; materialFilter = 'all'; }
+  state.selected = id; byId('details').hidden = false; document.body.classList.add('person-open'); selection(); syncPersonSheet();
+  if (compactViewport()) byId('close-details').focus({ preventScroll: true });
+  const q = new URLSearchParams({ person: id }); history.replaceState(null, '', '#' + q);
+}
+function closeDetails() {
+  const previous = state.selected;
+  state.selected = null; byId('details').hidden = true; document.body.classList.remove('person-open'); selection(); syncPersonSheet();
+  history.replaceState(null, '', location.pathname); if (previous && compactViewport()) cards.get(previous)?.focus({ preventScroll: true });
+}
 function search() {
   const query = folded(byId('search').value.trim()), results = byId('matches'); results.replaceChildren(); results.hidden = !query;
   if (!query) return;
   const found = model.persons.filter(p => folded([p.name, ...p.aliases].join(' ')).includes(query)).slice(0, 20);
-  for (const p of found) { const button = node('button', p.name); button.onclick = () => { byId('search').value = ''; results.hidden = true; choose(p.id); center(p.id); }; results.append(button); }
+  for (const p of found) { const button = node('button', p.name); button.onclick = () => { byId('search').value = ''; byId('search').blur(); results.hidden = true; choose(p.id); center(p.id); }; results.append(button); }
   if (!found.length) results.append(node('p', 'Пока не нашли. Попробуйте часть имени.'));
 }
 async function start() {
   const response = await fetch('tree.json'); if (!response.ok) throw Error('Не удалось загрузить подготовленные данные');
   model = await response.json(); people = new Map(model.persons.map(p => [p.id, p])); state.target = model.rootPerson;
   updateModelHeading(); fillTargets();
-  drawFamily(); if (innerWidth < 800) center(model.rootPerson, .85); else fit();
+  drawFamily(); if (compactViewport()) center(model.rootPerson, 1); else fit();
   const supplied = new URLSearchParams(location.hash.slice(1)).get('person'); if (people.has(supplied)) { choose(supplied); center(supplied); }
   byId('search').addEventListener('input', search); byId('search').addEventListener('keydown', e => { if (e.key === 'Enter') byId('matches').querySelector('button')?.click(); if (e.key === 'Escape') byId('matches').hidden = true; });
   byId('mode').onchange = e => { state.mode = e.target.value; state.dossierTab = 'overview'; byId('target').hidden = state.mode !== 'path'; if (!state.selected) choose(model.rootPerson); else selection(); };
@@ -443,13 +481,74 @@ async function start() {
   byId('material-dialog').addEventListener('close', () => {if(!byId('editor-dialog').open)byId(`tab-${state.dossierTab}`)?.focus();});
   window.addEventListener('beforeunload',event=>{if(editorState?.dirty){event.preventDefault();event.returnValue='';}});
   const garden = byId('garden');
-  garden.addEventListener('pointerdown', e => { if (e.button !== 0 || e.target.closest('button,[data-connection]')) return; overview = false; drag = { id: e.pointerId, x: e.clientX, y: e.clientY, left: state.left, top: state.top }; garden.setPointerCapture(e.pointerId); garden.classList.add('dragging'); });
-  garden.addEventListener('pointermove', e => { if (!drag || e.pointerId !== drag.id) return; state.left = drag.left + e.clientX - drag.x; state.top = drag.top + e.clientY - drag.y; paintCamera(); });
-  const end = () => { drag = null; garden.classList.remove('dragging'); }; garden.addEventListener('pointerup', end); garden.addEventListener('pointercancel', end);
+  function capturePointer(id) { try { garden.setPointerCapture(id); } catch { /* A cancelled touch may already be released. */ } }
+  function beginGesture(moved = false) {
+    const points = [...pointers.values()];
+    if (points.length >= 2) {
+      const [a, b] = points, x = (a.x + b.x) / 2, y = (a.y + b.y) / 2;
+      gesture = { kind: 'pinch', distance: Math.max(1, Math.hypot(b.x - a.x, b.y - a.y)), zoom: state.zoom,
+        worldX: (x - state.left) / state.zoom, worldY: (y - state.top) / state.zoom, moved: true };
+      for (const id of pointers.keys()) capturePointer(id);
+    } else if (points.length) {
+      gesture = { kind: 'pan', x: points[0].x, y: points[0].y, left: state.left, top: state.top, moved };
+    } else gesture = null;
+  }
+  garden.addEventListener('pointerdown', e => {
+    if (e.button !== 0 || (e.pointerType === 'mouse' && e.target.closest('button,[data-connection]'))) return;
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY }); beginGesture(gesture?.moved || false);
+    if (e.pointerType === 'mouse') capturePointer(e.pointerId);
+  });
+  garden.addEventListener('pointermove', e => {
+    if (!pointers.has(e.pointerId) || !gesture) return;
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (gesture.kind === 'pinch') {
+      const [a, b] = [...pointers.values()], x = (a.x + b.x) / 2, y = (a.y + b.y) / 2;
+      state.zoom = Math.min(2.1, Math.max(.15, gesture.zoom * Math.hypot(b.x - a.x, b.y - a.y) / gesture.distance));
+      state.left = x - gesture.worldX * state.zoom; state.top = y - gesture.worldY * state.zoom;
+    } else {
+      const dx = e.clientX - gesture.x, dy = e.clientY - gesture.y;
+      if (!gesture.moved && Math.hypot(dx, dy) < 6) return;
+      gesture.moved = true; capturePointer(e.pointerId);
+      state.left = gesture.left + dx; state.top = gesture.top + dy;
+    }
+    overview = false; garden.classList.add('dragging'); paintCamera();
+  });
+  const endGesture = e => {
+    if (!pointers.has(e.pointerId)) return;
+    const moved = gesture?.moved || false;
+    if (moved) suppressTreeClickUntil = performance.now() + 450;
+    pointers.delete(e.pointerId); beginGesture(moved);
+    if (!pointers.size) garden.classList.remove('dragging');
+  };
+  garden.addEventListener('pointerup', endGesture); garden.addEventListener('pointercancel', endGesture);
+  garden.addEventListener('lostpointercapture', e => {
+    // Touch starts with implicit capture on a card or its child. Its capture-loss
+    // event bubbles here when dragging transfers capture to the garden.
+    if (e.target === garden && !garden.hasPointerCapture(e.pointerId)) endGesture(e);
+  });
+  garden.addEventListener('click', e => {
+    if (e.detail && performance.now() < suppressTreeClickUntil) { e.preventDefault(); e.stopImmediatePropagation(); }
+  }, true);
   garden.addEventListener('wheel', e => { e.preventDefault(); overview = false; if (e.ctrlKey || e.metaKey) scaleTo(state.zoom * Math.exp(-e.deltaY * .002), e.clientX, e.clientY); else { state.left -= e.deltaX; state.top -= e.deltaY; paintCamera(); } }, { passive: false });
   byId('map-button').onclick = e => { overview = false; const r = byId('mini-map').getBoundingClientRect(), scale = Math.min(r.width / model.width, r.height / model.height); const x = (e.clientX - r.left - (r.width - model.width * scale) / 2) / scale, y = (e.clientY - r.top - (r.height - model.height * scale) / 2) / scale; state.left = innerWidth / 2 - x * state.zoom; state.top = innerHeight / 2 - y * state.zoom; paintCamera(); };
-  window.addEventListener('resize', () => { if (overview) fit(); else { state.left += (innerWidth - previousViewport.width) / 2; state.top += (innerHeight - previousViewport.height) / 2; paintCamera(); } previousViewport = { width: innerWidth, height: innerHeight }; });
-  document.addEventListener('keydown', e => { if (byId('evidence-dialog').open || byId('guide').open || byId('material-dialog').open || byId('editor-dialog').open) return; if (e.key === 'Escape') closeDetails(); if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); byId('search').focus(); } });
+  window.addEventListener('resize', () => {
+    syncPersonSheet();
+    const rotated = (innerWidth > innerHeight) !== (previousViewport.width > previousViewport.height);
+    if (overview) fit();
+    else if (rotated && compactViewport()) center(state.selected || model.rootPerson, state.zoom);
+    else { state.left += (innerWidth - previousViewport.width) / 2; state.top += (innerHeight - previousViewport.height) / 2; paintCamera(); }
+    previousViewport = { width: innerWidth, height: innerHeight };
+  });
+  document.addEventListener('keydown', e => {
+    if (document.querySelector('dialog[open]')) return;
+    if (e.key === 'Tab' && state.selected && compactViewport()) {
+      const controls = [...byId('details').querySelectorAll('button:not(:disabled),a[href],input:not(:disabled),select:not(:disabled),textarea:not(:disabled)')].filter(el => el.getClientRects().length);
+      const first = controls[0], last = controls.at(-1);
+      if ((e.shiftKey && document.activeElement === first) || (!e.shiftKey && document.activeElement === last)) { e.preventDefault(); (e.shiftKey ? last : first)?.focus(); }
+    }
+    if (e.key === 'Escape') closeDetails();
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); if (state.selected && compactViewport()) closeDetails(); byId('search').focus(); }
+  });
   window.drevo = { getState: () => structuredClone({ ...state, personCount: model.persons.length, editable: session?.editable === true }), fit, center };
   void loadSession();
 }

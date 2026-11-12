@@ -10,6 +10,8 @@ const [action = 'dev', ...extra] = process.argv.slice(2);
 if (!['dev', 'build', 'preview'].includes(action)) throw Error('Поддерживаются dev, build, preview');
 const input = JSON.parse(await readFile(path.join(skill, 'assets/viewer/data/family.json'), 'utf8'));
 if (input.fictional !== true || input.demo !== true) throw Error('Демонстрационная сборка требует явно вымышленных данных');
+const feedback = JSON.parse(await readFile(path.join(skill, 'assets/viewer/src/feedback-config.json'), 'utf8'));
+if (feedback.enabled !== false || feedback.ready !== false || Object.keys(feedback).some(key => !['enabled', 'ready'].includes(key))) throw Error('Публичное демо требует выключенную форму без адресов получателей. Настраивайте её только в отдельном сайте.');
 async function nodeCommand(file, args = []) {
   await new Promise((resolve, reject) => {
     const child = spawn(process.execPath, [file, ...args], { stdio: 'inherit' });

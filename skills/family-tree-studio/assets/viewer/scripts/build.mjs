@@ -11,7 +11,7 @@ export async function build() {
   const staging = await mkdtemp(path.join(projectRoot, '.build-'));
   try {
     const copy = async (source, target) => { await mkdir(path.dirname(path.join(staging, target)), { recursive: true }); await copyFile(source, path.join(staging, target)); };
-    for (const file of ['index.html', 'app.js', 'style.css']) await copy(path.join(projectRoot, 'src', file), file);
+    for (const file of ['index.html', 'app.js', 'style.css', 'feedback.js', 'feedback.css', 'feedback-config.json']) await copy(path.join(projectRoot, 'src', file), file);
     for (const file of ['fonts/golos-0.ttf', 'fonts/golos-1.ttf', 'fonts/golos-2.ttf', 'icons/map-pin.svg']) await copy(path.join(projectRoot, 'public/assets', file), 'assets/' + file);
     for (const [source, target] of [['public/assets/fonts/OFL.txt', 'licenses/Golos-OFL.txt'], ['public/assets/icons/LICENSE-lucide.txt', 'licenses/Lucide.txt'], ['LICENSE', 'licenses/Viewer-MIT.txt']]) await copy(path.join(projectRoot, source), target);
     const publicRoot = await realpath(path.join(projectRoot, 'public'));

@@ -7,7 +7,7 @@ import { validateRegistry, validateCase, buildPlan, formatPlan } from '../lib/pl
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const readJSON = async file => JSON.parse(await readFile(file, 'utf8'));
 const registry = async () => validateRegistry(await readJSON(path.join(root, 'registry/resources.json')));
-const usage = `Древо 0.3.1 — инструменты генеалогического исследования
+const usage = `Древо 0.4.0 — инструменты генеалогического исследования
 
   node bin/drevo.mjs init <новая-папка-вне-репозитория>
   node bin/drevo.mjs plan <case.json> [--all] [--limit 3] [--paid] [--json]
